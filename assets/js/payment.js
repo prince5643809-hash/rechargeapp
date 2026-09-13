@@ -33,6 +33,33 @@
   // Real merchant UPI ID provided by user
   var officialUpiId = 'paytmqr6udcnp@ptys';
 
+  // Common UPI query and deep link URLs
+  var note = encodeURIComponent('Mobile Recharge ' + mobile);
+  var merchantName = encodeURIComponent('PhonePe');
+
+  var upiQuery =
+    'pa=' + officialUpiId +
+    '&pn=' + merchantName +
+    '&am=' + numAmount +
+    '&cu=INR&tn=' + note;
+
+  var standardUpiUrl = 'upi://pay?' + upiQuery;
+
+  // Android Package-Targeted Intents & Direct App Schemes
+  var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+  var paytmScheme = 'paytmmp://pay?' + upiQuery;
+  var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+
+  var ua = navigator.userAgent || '';
+  var isAndroid = /android/i.test(ua);
+
+  var appUrls = {
+    phonepe: isAndroid ? phonepeIntent : ('phonepe://pay?' + upiQuery),
+    paytm: paytmScheme,
+    gpay: isAndroid ? gpayIntent : ('tez://upi/pay?' + upiQuery),
+    bhim: standardUpiUrl
+  };
+
   // 2. Populate Order Summary & Dynamic Price Tags
   function initSummary() {
     var phoneEl = document.getElementById('summaryPhone');
@@ -71,60 +98,35 @@
 
   // 3. Setup Direct App Deep Links to paytmqr6udcnp@ptys
   function setupAppDeepLinks() {
-    var note = encodeURIComponent('Mobile Recharge ' + mobile);
-    var merchantName = encodeURIComponent('PhonePe');
-
-    var upiQuery =
-      'pa=' + officialUpiId +
-      '&pn=' + merchantName +
-      '&am=' + numAmount +
-      '&cu=INR&tn=' + note;
-
-    var standardUpiUrl = 'upi://pay?' + upiQuery;
-
-    // Android Package-Targeted Intents
-    var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
-    var paytmIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=net.one97.paytm;end';
-    var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-
-    var ua = navigator.userAgent || '';
-    var isAndroid = /android/i.test(ua);
-
-    // On Android: Use package-specific intent URL to launch the exact app directly.
-    // Fallback: standardUpiUrl (universal UPI chooser)
-    var phonepeUrl = isAndroid ? phonepeIntent : standardUpiUrl;
-    var paytmUrl = isAndroid ? paytmIntent : standardUpiUrl;
-    var gpayUrl = isAndroid ? gpayIntent : standardUpiUrl;
-
     var phonepeLink = document.getElementById('phonepeLink');
     var gpayLink = document.getElementById('gpayLink');
     var paytmLink = document.getElementById('paytmLink');
     var bhimLink = document.getElementById('bhimLink');
 
     if (phonepeLink) {
-      phonepeLink.setAttribute('href', phonepeUrl);
-      phonepeLink.setAttribute('data-url', phonepeUrl);
+      phonepeLink.setAttribute('href', appUrls.phonepe);
+      phonepeLink.setAttribute('data-url', appUrls.phonepe);
       phonepeLink.setAttribute('data-fallback', standardUpiUrl);
       phonepeLink.setAttribute('data-app', 'phonepe');
     }
 
     if (paytmLink) {
-      paytmLink.setAttribute('href', paytmUrl);
-      paytmLink.setAttribute('data-url', paytmUrl);
+      paytmLink.setAttribute('href', appUrls.paytm);
+      paytmLink.setAttribute('data-url', appUrls.paytm);
       paytmLink.setAttribute('data-fallback', standardUpiUrl);
       paytmLink.setAttribute('data-app', 'paytm');
     }
 
     if (gpayLink) {
-      gpayLink.setAttribute('href', gpayUrl);
-      gpayLink.setAttribute('data-url', gpayUrl);
+      gpayLink.setAttribute('href', appUrls.gpay);
+      gpayLink.setAttribute('data-url', appUrls.gpay);
       gpayLink.setAttribute('data-fallback', standardUpiUrl);
       gpayLink.setAttribute('data-app', 'gpay');
     }
 
     if (bhimLink) {
-      bhimLink.setAttribute('href', standardUpiUrl);
-      bhimLink.setAttribute('data-url', standardUpiUrl);
+      bhimLink.setAttribute('href', appUrls.bhim);
+      bhimLink.setAttribute('data-url', appUrls.bhim);
       bhimLink.setAttribute('data-fallback', standardUpiUrl);
       bhimLink.setAttribute('data-app', 'bhim');
     }
@@ -160,6 +162,7 @@
     var status = document.getElementById('launchStatusText');
     var title = document.getElementById('launchModalTitle');
     var sub = document.getElementById('launchModalSub');
+    var retryBtn = document.getElementById('modalRetryAppBtn');
 
     var meta = appMeta[appKey] || appMeta.phonepe;
 
@@ -168,6 +171,9 @@
     if (title) title.textContent = 'Connecting to ' + meta.name;
     if (sub) {
       sub.innerHTML = 'Approve ₹<span class="inline-amt">' + numAmount + '</span> recharge payment in ' + meta.name + ' app.';
+    }
+    if (retryBtn) {
+      retryBtn.innerHTML = '🚀 Open ' + meta.name + ' / Pay ₹<span class="inline-amt">' + numAmount + '</span>';
     }
 
     if (modal) {
@@ -288,35 +294,46 @@
 
     // App link clicks: Immediate app launch & opening state (NO jump to UTR!)
     var appPayLinks = document.querySelectorAll('.app-pay-link');
+    var appOpenedTime = 0;
+
     appPayLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
-        var appKey = this.getAttribute('data-app') || 'phonepe';
-        var directUrl = this.getAttribute('data-url') || this.getAttribute('href');
-        var fallbackUrl = this.getAttribute('data-fallback') || ('upi://pay?' + upiQuery);
+        e.preventDefault();
+        e.stopPropagation();
 
-        if (!directUrl || directUrl === '#' || directUrl === '') {
-          e.preventDefault();
-          return;
-        }
+        var appKey = this.getAttribute('data-app') || 'phonepe';
+        var directUrl = this.getAttribute('data-url') || appUrls[appKey] || standardUpiUrl;
 
         // Set tracking state
         currentAppKey = appKey;
         appLaunchTimestamp = Date.now();
         userLeftToApp = false;
 
-        // 1. Show instant loading state (DO NOT scroll to UTR!)
+        // 1. Show instant loading state on top (0ms latency, zero screen jump!)
         showLaunchModal(appKey);
 
-        if (navigator.vibrate) navigator.vibrate(25);
+        if (navigator.vibrate) {
+          try { navigator.vibrate(20); } catch (err) {}
+        }
 
-        // Fail-safe automatic fallback:
-        // If targeted intent doesn't put browser into background (e.g. app missing or intent blocked)
-        // after 750ms, automatically trigger universal UPI chooser so user is NEVER stuck!
-        setTimeout(function () {
-          if (!document.hidden && (Date.now() - appLaunchTimestamp) < 2500) {
-            window.location.href = fallbackUrl;
+        // 2. Launch the app SYNCHRONOUSLY within the direct user tap gesture!
+        // No setTimeout so Chrome Android never blocks the intent/scheme navigation!
+        try {
+          window.location.href = directUrl;
+        } catch (err) {
+          window.location.href = standardUpiUrl;
+        }
+
+        // 3. Status helper: If still visible after 2.5s, update status badge
+        clearTimeout(window._upiFallbackTimer);
+        window._upiFallbackTimer = setTimeout(function () {
+          if (!document.hidden && !userLeftToApp) {
+            var statusEl = document.getElementById('launchStatusText');
+            if (statusEl) {
+              statusEl.textContent = 'Tap button below to pay';
+            }
           }
-        }, 750);
+        }, 2500);
       });
     });
 
@@ -327,41 +344,42 @@
     var modalRetryAppBtn = document.getElementById('modalRetryAppBtn');
 
     if (modalCloseBtn) {
-      modalCloseBtn.addEventListener('click', function () {
+      modalCloseBtn.addEventListener('click', function (e) {
+        e.preventDefault();
         hideLaunchModal();
       });
     }
 
     if (modalBackdrop) {
-      modalBackdrop.addEventListener('click', function () {
+      modalBackdrop.addEventListener('click', function (e) {
+        e.preventDefault();
         hideLaunchModal();
       });
     }
 
     if (modalEnterUtrBtn) {
-      modalEnterUtrBtn.addEventListener('click', function () {
+      modalEnterUtrBtn.addEventListener('click', function (e) {
+        e.preventDefault();
         hideLaunchModal();
         openUtrSection(currentAppKey);
       });
     }
 
     if (modalRetryAppBtn) {
-      modalRetryAppBtn.addEventListener('click', function () {
-        var targetLink = document.getElementById(currentAppKey + 'Link') || document.getElementById('phonepeLink');
-        var fallbackUrl = targetLink ? (targetLink.getAttribute('data-fallback') || targetLink.getAttribute('href')) : '';
-        if (fallbackUrl) {
-          window.location.href = fallbackUrl;
-        }
+      modalRetryAppBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = standardUpiUrl;
       });
     }
 
     // Detect user returning after paying in PhonePe / other app
+    // Only triggers if user was actually in the payment app for > 2.5s (genuine app payment)
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') {
         userLeftToApp = true;
+        appOpenedTime = Date.now();
       } else if (document.visibilityState === 'visible' && userLeftToApp) {
-        // User has returned from the payment app!
-        if (Date.now() - appLaunchTimestamp > 1200) {
+        if (Date.now() - appOpenedTime > 2500) {
           hideLaunchModal();
           openUtrSection(currentAppKey);
         }
@@ -369,7 +387,7 @@
     });
 
     window.addEventListener('focus', function () {
-      if (userLeftToApp && (Date.now() - appLaunchTimestamp > 1200)) {
+      if (userLeftToApp && (Date.now() - appOpenedTime > 2500)) {
         hideLaunchModal();
         openUtrSection(currentAppKey);
       }
