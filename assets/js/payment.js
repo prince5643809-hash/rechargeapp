@@ -71,59 +71,78 @@
 
   // 3. Setup Direct App Deep Links to paytmqr6udcnp@ptys
   function setupAppDeepLinks() {
-    var isAndroid = /android/i.test(navigator.userAgent);
+    var ua = navigator.userAgent || '';
+    var isAndroid = /android/i.test(ua);
+    var isChromeAndroid = isAndroid && /chrome|crios/i.test(ua) && !/samsungbrowser|miuibrowser|vivobrowser|heytapbrowser|oppobrowser|ucbrowser|firefox|opr/i.test(ua);
+
     var note = encodeURIComponent('Mobile Recharge ' + mobile);
     var merchantName = encodeURIComponent('SwiftRecharge');
 
-    var standardUpiUrl =
-      'upi://pay?pa=' + officialUpiId +
+    var upiQuery =
+      'pa=' + officialUpiId +
       '&pn=' + merchantName +
       '&am=' + numAmount +
       '&cu=INR&tn=' + note;
 
-    // Specific intents for PhonePe, GPay, Paytm
+    var standardUpiUrl = 'upi://pay?' + upiQuery;
+
+    // Direct custom URI schemes (universal across mobile browsers)
+    var phonepeCustom = 'phonepe://pay?' + upiQuery;
+    var paytmCustom = 'paytmmp://pay?' + upiQuery;
+    var gpayCustom = 'tez://upi/pay?' + upiQuery;
+
+    // Android package-targeted intents with action=android.intent.action.VIEW (essential for direct opening)
+    var phonepeIntent =
+      'intent://pay?' + upiQuery +
+      '#Intent;scheme=upi;package=com.phonepe.app;action=android.intent.action.VIEW;end';
+
+    var paytmIntent =
+      'intent://pay?' + upiQuery +
+      '#Intent;scheme=upi;package=net.one97.paytm;action=android.intent.action.VIEW;end';
+
+    var gpayIntent =
+      'intent://pay?' + upiQuery +
+      '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;action=android.intent.action.VIEW;end';
+
+    // Primary URL strategy:
+    // On Android Chrome: package-targeted intent with action opens that exact app directly.
+    // On Other Android browsers & iOS: custom schemes (phonepe://, paytmmp://, tez://) open the exact app.
+    var phonepeUrl = isAndroid ? (isChromeAndroid ? phonepeIntent : phonepeCustom) : phonepeCustom;
+    var paytmUrl = isAndroid ? (isChromeAndroid ? paytmIntent : paytmCustom) : paytmCustom;
+    var gpayUrl = isAndroid ? (isChromeAndroid ? gpayIntent : gpayCustom) : standardUpiUrl;
+
     var phonepeLink = document.getElementById('phonepeLink');
     var gpayLink = document.getElementById('gpayLink');
     var paytmLink = document.getElementById('paytmLink');
     var bhimLink = document.getElementById('bhimLink');
 
-    // PhonePe Deep Link URL (Android package intent directly targeting PhonePe app)
-    var phonepeUrl = isAndroid
-      ? 'intent://pay?pa=' + officialUpiId +
-        '&pn=' + merchantName +
-        '&am=' + numAmount +
-        '&cu=INR&tn=' + note +
-        '#Intent;scheme=upi;package=com.phonepe.app;end'
-      : 'phonepe://pay?pa=' + officialUpiId +
-        '&pn=' + merchantName +
-        '&am=' + numAmount +
-        '&cu=INR&tn=' + note;
+    if (phonepeLink) {
+      phonepeLink.setAttribute('href', phonepeUrl);
+      phonepeLink.setAttribute('data-intent', phonepeIntent);
+      phonepeLink.setAttribute('data-custom', phonepeCustom);
+      phonepeLink.setAttribute('data-app', 'phonepe');
+    }
 
-    // Google Pay URL
-    var gpayUrl = isAndroid
-      ? 'intent://pay?pa=' + officialUpiId +
-        '&pn=' + merchantName +
-        '&am=' + numAmount +
-        '&cu=INR&tn=' + note +
-        '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end'
-      : standardUpiUrl;
+    if (paytmLink) {
+      paytmLink.setAttribute('href', paytmUrl);
+      paytmLink.setAttribute('data-intent', paytmIntent);
+      paytmLink.setAttribute('data-custom', paytmCustom);
+      paytmLink.setAttribute('data-app', 'paytm');
+    }
 
-    // Paytm App URL
-    var paytmUrl = isAndroid
-      ? 'intent://pay?pa=' + officialUpiId +
-        '&pn=' + merchantName +
-        '&am=' + numAmount +
-        '&cu=INR&tn=' + note +
-        '#Intent;scheme=upi;package=net.one97.paytm;end'
-      : 'paytmmp://pay?pa=' + officialUpiId +
-        '&pn=' + merchantName +
-        '&am=' + numAmount +
-        '&cu=INR&tn=' + note;
+    if (gpayLink) {
+      gpayLink.setAttribute('href', gpayUrl);
+      gpayLink.setAttribute('data-intent', gpayIntent);
+      gpayLink.setAttribute('data-custom', gpayCustom);
+      gpayLink.setAttribute('data-app', 'gpay');
+    }
 
-    if (phonepeLink) phonepeLink.setAttribute('href', phonepeUrl);
-    if (gpayLink) gpayLink.setAttribute('href', gpayUrl);
-    if (paytmLink) paytmLink.setAttribute('href', paytmUrl);
-    if (bhimLink) bhimLink.setAttribute('href', standardUpiUrl);
+    if (bhimLink) {
+      bhimLink.setAttribute('href', standardUpiUrl);
+      bhimLink.setAttribute('data-intent', standardUpiUrl);
+      bhimLink.setAttribute('data-custom', standardUpiUrl);
+      bhimLink.setAttribute('data-app', 'bhim');
+    }
   }
 
   // 4. Circular Ring Timer during Verification
@@ -201,13 +220,38 @@
       });
     }
 
-    // App link clicks: Launch app & focus UTR entry
+    // App link clicks: Launch app & focus UTR entry with smart fallback
     var appPayLinks = document.querySelectorAll('.app-pay-link');
     appPayLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
         var targetUrl = this.getAttribute('href');
+        var customUrl = this.getAttribute('data-custom');
+        var appName = this.getAttribute('data-app');
+
         if (!targetUrl || targetUrl === '#' || targetUrl === '') {
           e.preventDefault();
+          return;
+        }
+
+        if (navigator.vibrate) navigator.vibrate(20);
+
+        // Smart fallback: If primary intent fails or the app is not installed,
+        // and browser is still in foreground after 1.2s, attempt direct scheme or universal UPI chooser
+        if (appName && appName !== 'bhim') {
+          var clickTime = Date.now();
+          setTimeout(function () {
+            if (!document.hidden && (Date.now() - clickTime) < 2500) {
+              if (customUrl && targetUrl !== customUrl) {
+                window.location.href = customUrl;
+              } else {
+                var upiFallback =
+                  'upi://pay?pa=' + officialUpiId +
+                  '&pn=SwiftRecharge&am=' + numAmount +
+                  '&cu=INR&tn=' + encodeURIComponent('Mobile Recharge ' + mobile);
+                window.location.href = upiFallback;
+              }
+            }
+          }, 1200);
         }
 
         // Guide user to Step 2 UTR verification after initiating app payment
@@ -219,8 +263,6 @@
             utrInput.focus();
           }
         }, 800);
-
-        if (navigator.vibrate) navigator.vibrate(20);
       });
     });
 
@@ -373,8 +415,13 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      initSummary();
+      initCheckoutActions();
+    });
+  } else {
     initSummary();
     initCheckoutActions();
-  });
+  }
 })();
