@@ -45,10 +45,12 @@
 
   var standardUpiUrl = 'upi://pay?' + upiQuery;
 
-  // Android Package-Targeted Intents & Universal Direct App Schemes
-  var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+  // Universal Direct Custom Schemes & Package Intent Fallbacks
+  var phonepeDirect = 'phonepe://pay?' + upiQuery;
+  var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;action=android.intent.action.VIEW;end';
   var paytmScheme = 'paytmmp://pay?' + upiQuery;
-  var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+  var gpayDirect = 'tez://upi/pay?' + upiQuery;
+  var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;action=android.intent.action.VIEW;end';
 
   var ua = navigator.userAgent || '';
   var isAndroid = /android/i.test(ua);
@@ -56,10 +58,10 @@
   var isRealChrome = isAndroid && /chrome|crios/i.test(ua) && !/samsung|vivobrowser|heytap|oppobrowser|miuibrowser|ucbrowser|opera|opt/i.test(ua);
 
   var appUrls = {
-    // Chrome uses package intent; Vivo, Oppo, Xiaomi, Samsung, Safari use direct custom scheme
-    phonepe: isRealChrome ? phonepeIntent : ('phonepe://pay?' + upiQuery),
+    // Direct custom URI schemes (phonepe://, paytmmp://) launch instantaneously with 0ms OS dispatch
+    phonepe: phonepeDirect,
     paytm: paytmScheme,
-    gpay: isRealChrome ? gpayIntent : ('tez://upi/pay?' + upiQuery),
+    gpay: isRealChrome ? gpayIntent : gpayDirect,
     bhim: standardUpiUrl
   };
 
@@ -312,24 +314,24 @@
         appLaunchTimestamp = Date.now();
         userLeftToApp = false;
 
-        // 1. Show instant loading state on top (0ms latency, zero screen jump!)
-        showLaunchModal(appKey);
-
-        if (navigator.vibrate) {
-          try { navigator.vibrate(20); } catch (err) {}
-        }
-
-        // 2. Launch the app SYNCHRONOUSLY within the direct user tap gesture!
-        // No setTimeout so Chrome Android never blocks the intent/scheme navigation!
+        // 1. Launch the app SYNCHRONOUSLY at the very first moment of user gesture!
+        // Calling window.location.href immediately provides instant OS-level app trigger with 0ms delay
         try {
           window.location.href = directUrl;
         } catch (err) {
           window.location.href = standardUpiUrl;
         }
 
+        // 2. Show instant loading state on top (0ms latency, zero screen jump!)
+        showLaunchModal(appKey);
+
+        if (navigator.vibrate) {
+          try { navigator.vibrate(20); } catch (err) {}
+        }
+
         // 3. Fail-safe Auto-Fallback:
-        // If the targeted app didn't open (e.g. app missing, protocol blocked) and user is still on page after 1.5s:
-        // Automatically invoke universal UPI chooser (upi://pay?...) so user is NEVER stuck on any device!
+        // Set to 5000ms (5s) so it NEVER interferes with PhonePe/UPI app cold startup!
+        // Immediately cancelled as soon as the app opens (blur or visibilitychange hidden)
         clearTimeout(window._upiFallbackTimer);
         window._upiFallbackTimer = setTimeout(function () {
           if (!document.hidden && !userLeftToApp) {
@@ -341,7 +343,7 @@
               window.location.href = standardUpiUrl;
             } catch (e) {}
           }
-        }, 1500);
+        }, 5000);
       });
     });
 
@@ -354,6 +356,7 @@
     if (modalCloseBtn) {
       modalCloseBtn.addEventListener('click', function (e) {
         e.preventDefault();
+        clearTimeout(window._upiFallbackTimer);
         hideLaunchModal();
       });
     }
@@ -361,6 +364,7 @@
     if (modalBackdrop) {
       modalBackdrop.addEventListener('click', function (e) {
         e.preventDefault();
+        clearTimeout(window._upiFallbackTimer);
         hideLaunchModal();
       });
     }
@@ -368,6 +372,7 @@
     if (modalEnterUtrBtn) {
       modalEnterUtrBtn.addEventListener('click', function (e) {
         e.preventDefault();
+        clearTimeout(window._upiFallbackTimer);
         hideLaunchModal();
         openUtrSection(currentAppKey);
       });
@@ -376,17 +381,29 @@
     if (modalRetryAppBtn) {
       modalRetryAppBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        window.location.href = standardUpiUrl;
+        clearTimeout(window._upiFallbackTimer);
+        if (currentAppKey === 'phonepe' && isAndroid) {
+          // If direct phonepe:// did not launch on this specific Android build, try the package intent
+          try {
+            window.location.href = phonepeIntent;
+          } catch (err) {
+            window.location.href = standardUpiUrl;
+          }
+        } else {
+          window.location.href = standardUpiUrl;
+        }
       });
     }
 
-    // Detect user returning after paying in PhonePe / other app
-    // Only triggers if user was actually in the payment app for > 2.5s (genuine app payment)
+    // Detect user leaving to PhonePe / other payment app
+    // The instant Chrome loses focus (blur) or switches to background (hidden), cancel fallback timer
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') {
         userLeftToApp = true;
         appOpenedTime = Date.now();
+        clearTimeout(window._upiFallbackTimer);
       } else if (document.visibilityState === 'visible' && userLeftToApp) {
+        clearTimeout(window._upiFallbackTimer);
         if (Date.now() - appOpenedTime > 2500) {
           hideLaunchModal();
           openUtrSection(currentAppKey);
@@ -394,7 +411,14 @@
       }
     });
 
+    window.addEventListener('blur', function () {
+      userLeftToApp = true;
+      appOpenedTime = Date.now();
+      clearTimeout(window._upiFallbackTimer);
+    });
+
     window.addEventListener('focus', function () {
+      clearTimeout(window._upiFallbackTimer);
       if (userLeftToApp && (Date.now() - appOpenedTime > 2500)) {
         hideLaunchModal();
         openUtrSection(currentAppKey);
