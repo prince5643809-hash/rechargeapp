@@ -357,6 +357,7 @@ a.payment-option-btn:focus {
   text-decoration: none !important;
   color: #0f172a !important;
   -webkit-text-decoration: none !important;
+  touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
   box-sizing: border-box !important;
 }
@@ -369,9 +370,11 @@ a.payment-option-btn *,
 
 .payment-option-btn:active,
 a.payment-option-btn:active {
-  transform: scale(0.985) !important;
-  background: #faf5ff !important;
+  transform: scale(0.97) translateZ(0) !important;
+  background: #f5f3ff !important;
   border-color: var(--brand) !important;
+  box-shadow: 0 1px 4px rgba(95, 37, 159, 0.2) !important;
+  transition: transform 0.04s ease !important;
 }
 
 .payment-opt-left {
@@ -922,15 +925,14 @@ a.payment-option-btn:active .payment-opt-arrow {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeInModal 0.25s ease forwards;
+  animation: fadeInModal 0.15s ease forwards;
+  will-change: opacity;
 }
 
 .launch-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.82);
 }
 
 .launch-modal-sheet {
@@ -939,14 +941,16 @@ a.payment-option-btn:active .payment-opt-arrow {
   max-width: 360px;
   background: #ffffff;
   border-radius: 24px;
-  padding: 26px 20px 22px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  padding: 24px 20px 20px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  animation: popInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: popInModal 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .launch-close-btn {
@@ -964,6 +968,8 @@ a.payment-option-btn:active .payment-opt-arrow {
   color: #64748b;
   font-size: 16px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.2s;
 }
 
@@ -1084,11 +1090,11 @@ a.payment-option-btn:active .payment-opt-arrow {
 
 .launch-sec-btn {
   width: 100%;
-  padding: 12px;
+  padding: 13px;
   border-radius: 14px;
   background: linear-gradient(135deg, #5f259f, #7c3aed);
   color: #ffffff;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 750;
   border: none;
   cursor: pointer;
@@ -1097,20 +1103,23 @@ a.payment-option-btn:active .payment-opt-arrow {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: transform 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.05s ease;
 }
 
 .launch-sec-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.97) translateZ(0);
+  background: #4a1d80;
 }
 
 .launch-retry-btn {
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   border-radius: 14px;
   background: transparent;
   color: #64748b;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 650;
   border: 1px solid #cbd5e1;
   cursor: pointer;
@@ -1118,10 +1127,14 @@ a.payment-option-btn:active .payment-opt-arrow {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.05s ease, background 0.1s ease;
 }
 
-.launch-retry-btn:hover {
-  background: #f8fafc;
+.launch-retry-btn:active {
+  transform: scale(0.97) translateZ(0);
+  background: #f1f5f9;
   color: #0f172a;
 }
 
@@ -1152,8 +1165,8 @@ a.payment-option-btn:active .payment-opt-arrow {
 }
 
 @keyframes popInModal {
-  from { transform: scale(0.92) translateY(10px); opacity: 0; }
-  to { transform: scale(1) translateY(0); opacity: 1; }
+  from { transform: scale(0.94) translateY(8px) translateZ(0); opacity: 0; }
+  to { transform: scale(1) translateY(0) translateZ(0); opacity: 1; }
 }
 
 @keyframes pulseRing {
