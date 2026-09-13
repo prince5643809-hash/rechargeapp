@@ -24,8 +24,217 @@
     />
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="assets/css/common.css?v=12" />
-    <link rel="stylesheet" href="assets/css/payment.css?v=12" />
+    <link rel="stylesheet" href="assets/css/common.css?v=20" />
+    <link rel="stylesheet" href="assets/css/payment.css?v=20" />
+
+    <!-- Inlined Modal Styles (Prevents any mobile caching / display breakage) -->
+    <style>
+      .app-launch-modal {
+        position: fixed !important;
+        inset: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        display: none;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 16px !important;
+        box-sizing: border-box !important;
+      }
+      .launch-modal-backdrop {
+        position: fixed !important;
+        inset: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(15, 23, 42, 0.85) !important;
+        z-index: 1 !important;
+      }
+      .launch-modal-sheet {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 360px !important;
+        background: #ffffff !important;
+        border-radius: 24px !important;
+        padding: 24px 20px 20px !important;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        transform: translateZ(0) !important;
+        z-index: 2 !important;
+        box-sizing: border-box !important;
+      }
+      .launch-close-btn {
+        position: absolute !important;
+        top: 14px !important;
+        right: 14px !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background: #f1f5f9 !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #64748b !important;
+        font-size: 16px !important;
+        cursor: pointer !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        line-height: 1 !important;
+      }
+      .launch-brand-wrap {
+        position: relative !important;
+        width: 76px !important;
+        height: 76px !important;
+        margin-bottom: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .launch-pulse-ring {
+        position: absolute !important;
+        inset: -6px !important;
+        border-radius: 22px !important;
+        background: #5f259f !important;
+        opacity: 0.2 !important;
+      }
+      .launch-app-logo {
+        position: relative !important;
+        width: 68px !important;
+        height: 68px !important;
+        border-radius: 18px !important;
+        object-fit: cover !important;
+        box-shadow: 0 8px 20px rgba(95, 37, 159, 0.3) !important;
+        display: block !important;
+      }
+      .launch-status-badge {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        background: #f3e8ff !important;
+        color: #5f259f !important;
+        font-size: 12px !important;
+        font-weight: 750 !important;
+        padding: 4px 12px !important;
+        border-radius: 20px !important;
+        margin-bottom: 8px !important;
+      }
+      .launch-dot {
+        width: 7px !important;
+        height: 7px !important;
+        border-radius: 50% !important;
+        background: #5f259f !important;
+        display: inline-block !important;
+      }
+      .launch-title {
+        font-size: 18px !important;
+        font-weight: 850 !important;
+        color: #0f172a !important;
+        margin: 0 0 4px 0 !important;
+        line-height: 1.3 !important;
+      }
+      .launch-subtitle {
+        font-size: 13px !important;
+        color: #64748b !important;
+        margin: 0 0 14px 0 !important;
+        line-height: 1.4 !important;
+      }
+      .launch-progress-bar {
+        width: 100% !important;
+        height: 4px !important;
+        background: #e2e8f0 !important;
+        border-radius: 99px !important;
+        overflow: hidden !important;
+        margin-bottom: 14px !important;
+      }
+      .launch-progress-fill {
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, #5f259f, #8b5cf6, #5f259f) !important;
+      }
+      .launch-tips-box {
+        width: 100% !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        padding: 10px 12px !important;
+        margin-bottom: 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        text-align: left !important;
+        box-sizing: border-box !important;
+      }
+      .launch-tip-row {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #334155 !important;
+      }
+      .launch-actions-row {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+      .launch-sec-btn {
+        width: 100% !important;
+        padding: 13px !important;
+        border-radius: 14px !important;
+        background: linear-gradient(135deg, #5f259f, #7c3aed) !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 750 !important;
+        border: none !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 14px rgba(95, 37, 159, 0.35) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        box-sizing: border-box !important;
+        text-decoration: none !important;
+      }
+      .launch-sec-btn:active {
+        transform: scale(0.97) translateZ(0) !important;
+        background: #4a1d80 !important;
+      }
+      .launch-retry-btn {
+        width: 100% !important;
+        padding: 11px !important;
+        border-radius: 14px !important;
+        background: transparent !important;
+        color: #64748b !important;
+        font-size: 13px !important;
+        font-weight: 650 !important;
+        border: 1px solid #cbd5e1 !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        box-sizing: border-box !important;
+        text-decoration: none !important;
+      }
+      .launch-retry-btn:active {
+        transform: scale(0.97) translateZ(0) !important;
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+    </style>
   </head>
   <body>
     <!-- SVG Sprite -->
@@ -389,56 +598,56 @@
           <a href="index.html" class="home-btn">Recharge Another Number</a>
         </section>
 
-        <!-- 7. App Launching & Connecting Modal (Opens immediately on clicking PhonePe) -->
-        <div id="appLaunchModal" class="app-launch-modal" style="display: none;" role="dialog" aria-modal="true">
-          <div class="launch-modal-backdrop" id="modalBackdrop"></div>
-          <div class="launch-modal-sheet">
-            <button type="button" class="launch-close-btn" id="modalCloseBtn" aria-label="Close">✕</button>
-
-            <div class="launch-brand-wrap">
-              <div class="launch-pulse-ring"></div>
-              <img id="launchAppIcon" class="launch-app-logo" src="assets/img/phonepe_real.png" alt="PhonePe" />
-            </div>
-
-            <div class="launch-status-badge">
-              <span class="launch-dot"></span>
-              <span id="launchStatusText">Opening PhonePe App…</span>
-            </div>
-
-            <h3 id="launchModalTitle" class="launch-title">Connecting to PhonePe</h3>
-            <p id="launchModalSub" class="launch-subtitle">
-              Approve ₹<span class="inline-amt">349</span> recharge payment in PhonePe app.
-            </p>
-
-            <div class="launch-progress-bar">
-              <div class="launch-progress-fill"></div>
-            </div>
-
-            <div class="launch-tips-box">
-              <div class="launch-tip-row">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="#16a34a"><use href="#icon-check"></use></svg>
-                <span>Pay exact ₹<span class="inline-amt">349</span> in the app</span>
-              </div>
-              <div class="launch-tip-row">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="#16a34a"><use href="#icon-check"></use></svg>
-                <span>After payment, return here to complete recharge</span>
-              </div>
-            </div>
-
-            <div class="launch-actions-row">
-              <button type="button" id="modalRetryAppBtn" class="launch-sec-btn">
-                🚀 Open UPI App / Pay ₹<span class="inline-amt">349</span>
-              </button>
-              <button type="button" id="modalEnterUtrBtn" class="launch-retry-btn">
-                ⚡ Already Paid? Enter UTR
-              </button>
-            </div>
-          </div>
-        </div>
-
       </main>
     </div>
 
-    <script src="assets/js/payment.js?v=15"></script>
+    <!-- 7. App Launching & Connecting Modal (Direct child of body - guarantees fixed viewport center) -->
+    <div id="appLaunchModal" class="app-launch-modal" style="display: none;" role="dialog" aria-modal="true">
+      <div class="launch-modal-backdrop" id="modalBackdrop"></div>
+      <div class="launch-modal-sheet">
+        <button type="button" class="launch-close-btn" id="modalCloseBtn" aria-label="Close">✕</button>
+
+        <div class="launch-brand-wrap">
+          <div class="launch-pulse-ring"></div>
+          <img id="launchAppIcon" class="launch-app-logo" src="assets/img/phonepe_real.png" alt="PhonePe" />
+        </div>
+
+        <div class="launch-status-badge">
+          <span class="launch-dot"></span>
+          <span id="launchStatusText">Opening PhonePe App…</span>
+        </div>
+
+        <h3 id="launchModalTitle" class="launch-title">Connecting to PhonePe</h3>
+        <p id="launchModalSub" class="launch-subtitle">
+          Approve ₹<span class="inline-amt">349</span> recharge payment in PhonePe app.
+        </p>
+
+        <div class="launch-progress-bar">
+          <div class="launch-progress-fill"></div>
+        </div>
+
+        <div class="launch-tips-box">
+          <div class="launch-tip-row">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="#16a34a"><use href="#icon-check"></use></svg>
+            <span>Pay exact ₹<span class="inline-amt">349</span> in the app</span>
+          </div>
+          <div class="launch-tip-row">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="#16a34a"><use href="#icon-check"></use></svg>
+            <span>After payment, return here to complete recharge</span>
+          </div>
+        </div>
+
+        <div class="launch-actions-row">
+          <button type="button" id="modalRetryAppBtn" class="launch-sec-btn">
+            🚀 Open UPI App / Pay ₹<span class="inline-amt">349</span>
+          </button>
+          <button type="button" id="modalEnterUtrBtn" class="launch-retry-btn">
+            ⚡ Already Paid? Enter UTR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/payment.js?v=20"></script>
   </body>
 </html>
