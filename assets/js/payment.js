@@ -45,18 +45,21 @@
 
   var standardUpiUrl = 'upi://pay?' + upiQuery;
 
-  // Android Package-Targeted Intents & Direct App Schemes
+  // Android Package-Targeted Intents & Universal Direct App Schemes
   var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
   var paytmScheme = 'paytmmp://pay?' + upiQuery;
   var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
 
   var ua = navigator.userAgent || '';
   var isAndroid = /android/i.test(ua);
+  // Detect genuine Google Chrome vs OEM browsers (Vivo, Oppo/HeyTap, Xiaomi MIUI, Samsung Internet, UC)
+  var isRealChrome = isAndroid && /chrome|crios/i.test(ua) && !/samsung|vivobrowser|heytap|oppobrowser|miuibrowser|ucbrowser|opera|opt/i.test(ua);
 
   var appUrls = {
-    phonepe: isAndroid ? phonepeIntent : ('phonepe://pay?' + upiQuery),
+    // Chrome uses package intent; Vivo, Oppo, Xiaomi, Samsung, Safari use direct custom scheme
+    phonepe: isRealChrome ? phonepeIntent : ('phonepe://pay?' + upiQuery),
     paytm: paytmScheme,
-    gpay: isAndroid ? gpayIntent : ('tez://upi/pay?' + upiQuery),
+    gpay: isRealChrome ? gpayIntent : ('tez://upi/pay?' + upiQuery),
     bhim: standardUpiUrl
   };
 
@@ -324,16 +327,21 @@
           window.location.href = standardUpiUrl;
         }
 
-        // 3. Status helper: If still visible after 2.5s, update status badge
+        // 3. Fail-safe Auto-Fallback:
+        // If the targeted app didn't open (e.g. app missing, protocol blocked) and user is still on page after 1.5s:
+        // Automatically invoke universal UPI chooser (upi://pay?...) so user is NEVER stuck on any device!
         clearTimeout(window._upiFallbackTimer);
         window._upiFallbackTimer = setTimeout(function () {
           if (!document.hidden && !userLeftToApp) {
             var statusEl = document.getElementById('launchStatusText');
             if (statusEl) {
-              statusEl.textContent = 'Tap button below to pay';
+              statusEl.textContent = 'Opening available UPI apps…';
             }
+            try {
+              window.location.href = standardUpiUrl;
+            } catch (e) {}
           }
-        }, 2500);
+        }, 1500);
       });
     });
 
