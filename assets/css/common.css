@@ -1,0 +1,721 @@
+/* ==========================================================================
+   PhonePe Design System - Common Styles (Mobile Native App First)
+   ========================================================================== */
+
+:root {
+  --brand: #6b2db5;
+  --brand-dark: #371065;
+  --brand-light: rgba(107, 45, 181, 0.08);
+  --brand-glow: rgba(107, 45, 181, 0.25);
+
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --amber: #f59e0b;
+  --red: #ef4444;
+
+  --bg-body: #f4f5fa;
+  --card-bg: #ffffff;
+  
+  --text: #0f172a;
+  --text-soft: #64748b;
+  --text-muted: #94a3b8;
+  --text-white: #ffffff;
+
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-active: #6b2db5;
+  
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 17px 42px rgba(15, 23, 42, 0.09);
+  --shadow-btn: 0 12px 26px rgba(107, 45, 181, 0.32);
+
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  line-height: 1.45;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(
+      700px 310px at 4% -4%,
+      rgba(107, 45, 181, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      550px 260px at 100% 8%,
+      rgba(22, 163, 74, 0.12),
+      transparent 55%
+    ),
+    var(--bg-body);
+}
+
+/* App Viewport Container: True Mobile App Feel */
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding-bottom: calc(34px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  box-shadow: 0 0 50px rgba(15, 23, 42, 0.08);
+}
+
+/* ==========================================================================
+   Header Component & Micro-Animations
+   ========================================================================== */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 65px;
+  padding: calc(9px + env(safe-area-inset-top)) 13px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+  color: #fff;
+  overflow: hidden;
+  animation: headerGlowPulse 3.2s ease-in-out infinite;
+}
+
+.header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(255, 255, 255, 0.23), transparent 36%),
+    radial-gradient(circle at 8% 100%, rgba(199, 159, 255, 0.19), transparent 34%);
+  animation: headerBackgroundGlow 4s ease-in-out infinite;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -90%;
+  left: -48%;
+  width: 34%;
+  height: 280%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  transform: rotate(25deg);
+  animation: headerGlowSweep 4.4s ease-in-out infinite;
+}
+
+.header-left,
+.header-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  min-width: 0;
+  gap: 10px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.brand-mark {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  flex: 0 0 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  animation: brandFloat 3.5s ease-in-out infinite;
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 15px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  animation: brandRing 2.4s ease-out infinite;
+}
+
+.brand-mark img,
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 38px;
+  max-height: 38px;
+  object-fit: contain;
+  border-radius: 12px;
+  filter: drop-shadow(0 3px 6px rgba(38, 4, 72, 0.25));
+  animation: logoSoftPulse 3.2s ease-in-out infinite;
+}
+
+.brand-text {
+  min-width: 0;
+  color: #fff;
+}
+
+.brand-title {
+  font-size: 15.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-subtitle {
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: 0.88;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.header-button {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.header-button:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.header-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border: 1.5px solid var(--brand-dark);
+  border-radius: 50%;
+  animation: notifyPulse 1.8s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Offer Bar (Timer)
+   ========================================================================== */
+
+.offer-bar {
+  margin: 10px 11px 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #1e1b4b 0%, #311042 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  animation: fadeUp 0.45s ease both;
+}
+
+.offer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f3e8ff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.offer-icon {
+  display: flex;
+  align-items: center;
+  color: #f59e0b;
+  animation: softPulse 2s ease-in-out infinite;
+}
+
+.offer-icon svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.timer-value {
+  padding: 3px 9px;
+  border-radius: 7px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  animation: timerSoftGlow 2.2s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Loader Overlay Modal with Smooth Two-Phase Animation
+   ========================================================================== */
+
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.loader-overlay.show {
+  display: flex;
+  animation: overlayFade 0.22s ease both;
+}
+
+.loader-card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 310px;
+  padding: 26px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.25);
+  animation: loaderCardIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.loading-animation {
+  position: relative;
+  width: 66px;
+  height: 66px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3.5px solid rgba(107, 45, 181, 0.14);
+  border-top-color: var(--brand);
+  animation: spinnerRotate 0.78s linear infinite;
+}
+
+.spinner-core {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+}
+
+.spinner-core svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+  animation: spinnerCore 1.25s ease-in-out infinite;
+}
+
+.success-animation {
+  display: none;
+  width: 66px;
+  height: 66px;
+  margin-bottom: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 15px 32px rgba(22, 163, 74, 0.28);
+}
+
+.loader-card.success .success-animation {
+  display: flex;
+  animation: successPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.loader-card.success .success-animation svg {
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+  animation: checkDraw 0.4s 0.1s ease both;
+}
+
+.loader-title {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.loader-subtitle {
+  margin-top: 5px;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.loader-progress {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 4px;
+  margin-top: 18px;
+  border-radius: 999px;
+  background: rgba(107, 45, 181, 0.1);
+}
+
+.loader-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 28%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand-dark), #8f58d0);
+  animation: progressMove 1.15s ease-in-out infinite;
+}
+
+.loader-card.success .loader-progress span {
+  width: 100%;
+  animation: progressComplete 0.35s ease both;
+  background: var(--green);
+}
+
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes headerGlowPulse {
+  0%, 100% {
+    box-shadow: 0 12px 30px rgba(55, 16, 101, 0.25), 0 0 0 rgba(132, 76, 199, 0);
+  }
+  50% {
+    box-shadow: 0 15px 35px rgba(55, 16, 101, 0.34), 0 6px 25px rgba(132, 76, 199, 0.25);
+  }
+}
+
+@keyframes headerBackgroundGlow {
+  0%, 100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes headerGlowSweep {
+  0%, 55% {
+    left: -48%;
+    opacity: 0;
+  }
+  63% {
+    opacity: 0.8;
+  }
+  85% {
+    left: 120%;
+    opacity: 0.65;
+  }
+  100% {
+    left: 120%;
+    opacity: 0;
+  }
+}
+
+@keyframes brandFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes brandRing {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  70%, 100% {
+    opacity: 0;
+    transform: scale(1.17);
+  }
+}
+
+@keyframes logoSoftPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes notifyPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes softPulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes timerSoftGlow {
+  0%, 100% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 rgba(245, 158, 11, 0);
+  }
+  50% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 5px 15px rgba(245, 158, 11, 0.22);
+  }
+}
+
+@keyframes bannerShine {
+  0%, 62% {
+    left: -45%;
+  }
+  82%, 100% {
+    left: 130%;
+  }
+}
+
+@keyframes headingIconFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    box-shadow: 0 8px 17px rgba(107, 45, 181, 0.11);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-2deg);
+    box-shadow: 0 12px 22px rgba(107, 45, 181, 0.19);
+  }
+}
+
+@keyframes headingIconGlow {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.88);
+  }
+  75%, 100% {
+    opacity: 0;
+    transform: scale(1.32);
+  }
+}
+
+@keyframes headingPhonePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes buttonShine {
+  0%, 58% {
+    left: -45%;
+  }
+  80%, 100% {
+    left: 125%;
+  }
+}
+
+@keyframes errorTextIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fieldShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loaderCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spinnerRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinnerCore {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+
+@keyframes successPop {
+  from {
+    opacity: 0;
+    transform: scale(0.58) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes checkDraw {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes progressMove {
+  0% {
+    left: -30%;
+  }
+  100% {
+    left: 105%;
+  }
+}
+
+@keyframes progressComplete {
+  from {
+    width: 30%;
+  }
+  to {
+    width: 100%;
+  }
+}

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#5f259f" />
+    <link rel="icon" type="image/svg+xml" href="assets/img/phonepe.svg" />
+    <link rel="shortcut icon" href="assets/img/phonepe_real.png" />
+    <meta
+      name="description"
+      content="PhonePe – Fast, secure mobile recharge with instant discount offers."
+    />
+    <title>PhonePe – Fast & Secure Mobile Recharge</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="assets/css/common.css?v=15" />
+    <link rel="stylesheet" href="assets/css/home.css?v=15" />
+  </head>
+  <body>
+    <!-- SVG Sprite -->
+    <svg width="0" height="0" style="position: absolute; overflow: hidden; display: none;">
+      <symbol id="icon-bolt" viewBox="0 0 24 24">
+        <path d="M13.2 2.2 4.9 13.1c-.5.7 0 1.7.9 1.7h5.1l-.8 6.1c-.1.9 1.1 1.3 1.6.6l7.4-10.8c.5-.7 0-1.6-.9-1.6h-4.6l1.1-6.2c.2-.9-1-1.4-1.5-.7Z" />
+      </symbol>
+      <symbol id="icon-help" viewBox="0 0 24 24">
+        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 17.2a1.2 1.2 0 1 1 1.2-1.2 1.2 1.2 0 0 1-1.2 1.2Zm1.3-6.1v1h-2v-1.5c0-1 .5-1.6 1.3-2.2.8-.6 1.4-1 1.4-1.9a2 2 0 0 0-4 0H8a4 4 0 0 1 8 0c0 1.8-1.1 2.7-2.1 3.5-.4.3-.6.6-.6 1.1Z" />
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24">
+        <path d="M20 17h-1V11a7 7 0 0 0-5-6.7V3a2 2 0 0 0-4 0v1.3A7 7 0 0 0 5 11v6H4a1 1 0 0 0 0 2h5a3 3 0 0 0 6 0h5a1 1 0 0 0 0-2Zm-8 4a1 1 0 0 1-1-1h2a1 1 0 0 1-1 1Zm5-4H7v-6a5 5 0 0 1 10 0Z" />
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm1-13h-2v6l5.1 3.1 1-1.7-4.1-2.5Z" />
+      </symbol>
+      <symbol id="icon-phone" viewBox="0 0 24 24">
+        <path d="M17 1H7a3 3 0 0 0-3 3v16a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3Zm1 17H6V5h12Zm-5 3h-2v-1h2Z" />
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24">
+        <path d="M12 2 4 5v6c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5Zm-1.2 14.2-3.6-3.6 1.4-1.4 2.2 2.2 4.8-4.8L17 10Z" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m9.2 16.6-4.5-4.5-1.4 1.4 5.9 5.9L21 7.6l-1.4-1.4Z" />
+      </symbol>
+      <symbol id="icon-contact" viewBox="0 0 24 24">
+        <path d="M18 2H6a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3Zm-6 4a3 3 0 1 1-3 3 3 3 0 0 1 3-3Zm6 12H6v-.8c0-2.3 4-3.6 6-3.6s6 1.3 6 3.6Z" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="m13.2 5.3-1.4 1.4 4.3 4.3H4v2h12.1l-4.3 4.3 1.4 1.4 6.7-6.7Z" />
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24">
+        <path d="M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9Zm-8-2a3 3 0 0 1 6 0v2H9Zm4 10.7V19h-2v-1.3a2 2 0 1 1 2 0Z" />
+      </symbol>
+      <symbol id="icon-sparkle" viewBox="0 0 24 24">
+        <path d="m12 2 1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7ZM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9Z" />
+      </symbol>
+    </svg>
+
+    <div class="app">
+      <!-- App Header -->
+      <header class="header">
+        <div class="header-left">
+          <a href="index.html" class="header-brand" aria-label="PhonePe Home">
+            <div class="brand-mark">
+              <img class="brand-logo" src="assets/img/phonepe_real.png" width="38" height="38" alt="PhonePe Logo" />
+            </div>
+            <div class="brand-text">
+              <div class="brand-title">PhonePe</div>
+              <div class="brand-subtitle">Fast • Secure • Simple</div>
+            </div>
+          </a>
+        </div>
+        <div class="header-actions">
+          <button class="header-button" type="button" aria-label="Support & Help">
+            <svg viewBox="0 0 24 24"><use href="#icon-help"></use></svg>
+          </button>
+          <button class="header-button" type="button" aria-label="Notifications">
+            <span class="notification-dot"></span>
+            <svg viewBox="0 0 24 24"><use href="#icon-bell"></use></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Offer Countdown Bar -->
+      <section class="offer-bar">
+        <div class="offer-left">
+          <div class="offer-icon">
+            <svg viewBox="0 0 24 24"><use href="#icon-clock"></use></svg>
+          </div>
+          <div class="offer-title">Special Offer Ends In</div>
+        </div>
+        <div id="time" class="timer-value">10:00</div>
+      </section>
+
+      <!-- Main Content -->
+      <main class="content">
+        <!-- Promo Banner -->
+        <section class="banner-wrap">
+          <div class="banner-card">
+            <img src="assets/img/indexmain.png" alt="Special Festive Recharge Offer - 50% Off" />
+          </div>
+        </section>
+
+        <!-- Recharge Card -->
+        <section class="recharge-card">
+          <div class="card-heading">
+            <div class="heading-icon">
+              <svg viewBox="0 0 24 24"><use href="#icon-phone"></use></svg>
+            </div>
+            <div class="heading-copy">
+              <div class="heading-title">Recharge your mobile</div>
+              <div class="heading-subtitle">Select operator and enter number</div>
+            </div>
+            <div class="secure-badge">
+              <svg viewBox="0 0 24 24"><use href="#icon-shield"></use></svg>
+              SECURE
+            </div>
+          </div>
+
+          <!-- Network Provider Radio Options -->
+          <div class="field-label">Network provider</div>
+          <input class="operator-radio" type="radio" name="operator" id="operator-jio" value="jio" checked />
+          <input class="operator-radio" type="radio" name="operator" id="operator-airtel" value="airtel" />
+          <input class="operator-radio" type="radio" name="operator" id="operator-vi" value="vi" />
+          <input class="operator-radio" type="radio" name="operator" id="operator-bsnl" value="bsnl" />
+
+          <div class="operator-grid" role="radiogroup" aria-label="Select Network Operator">
+            <button
+              class="operator-option selected"
+              type="button"
+              data-operator="jio"
+              data-radio="operator-jio"
+              aria-label="Select Jio"
+              aria-pressed="true"
+            >
+              <span class="operator-check">
+                <svg viewBox="0 0 24 24"><use href="#icon-check"></use></svg>
+              </span>
+              <span class="operator-logo-wrap">
+                <img src="assets/img/jio.jpg" alt="Jio Logo" />
+              </span>
+              <span class="operator-name">Jio</span>
+            </button>
+
+            <button
+              class="operator-option"
+              type="button"
+              data-operator="airtel"
+              data-radio="operator-airtel"
+              aria-label="Select Airtel"
+              aria-pressed="false"
+            >
+              <span class="operator-check">
+                <svg viewBox="0 0 24 24"><use href="#icon-check"></use></svg>
+              </span>
+              <span class="operator-logo-wrap">
+                <img src="assets/img/airtel.jpg" alt="Airtel Logo" />
+              </span>
+              <span class="operator-name">Airtel</span>
+            </button>
+
+            <button
+              class="operator-option"
+              type="button"
+              data-operator="vi"
+              data-radio="operator-vi"
+              aria-label="Select Vi"
+              aria-pressed="false"
+            >
+              <span class="operator-check">
+                <svg viewBox="0 0 24 24"><use href="#icon-check"></use></svg>
+              </span>
+              <span class="operator-logo-wrap">
+                <img src="assets/img/vi.jpg" alt="Vi Logo" />
+              </span>
+              <span class="operator-name">Vi</span>
+            </button>
+
+            <button
+              class="operator-option"
+              type="button"
+              data-operator="bsnl"
+              data-radio="operator-bsnl"
+              aria-label="Select BSNL"
+              aria-pressed="false"
+            >
+              <span class="operator-check">
+                <svg viewBox="0 0 24 24"><use href="#icon-check"></use></svg>
+              </span>
+              <span class="operator-logo-wrap">
+                <img src="assets/img/bsnl.jpg" alt="BSNL Logo" />
+              </span>
+              <span class="operator-name">BSNL</span>
+            </button>
+          </div>
+
+          <!-- Mobile Number Input -->
+          <div class="field-label">Mobile number</div>
+          <div id="mobileField" class="mobile-field">
+            <div class="mobile-input-shell">
+              <span class="country-prefix">+91</span>
+              <input
+                type="tel"
+                id="mobileNumber"
+                name="mobile"
+                placeholder="00000 00000"
+                inputmode="numeric"
+                autocomplete="tel-national"
+                maxlength="11"
+              />
+              <span class="contact-icon" title="Choose from contacts">
+                <svg viewBox="0 0 24 24"><use href="#icon-contact"></use></svg>
+              </span>
+            </div>
+            <div id="inputMessage" class="input-message" role="alert"></div>
+          </div>
+
+          <!-- Action Button -->
+          <button id="rechargeButton" class="recharge-button" type="button">
+            <span>Recharge Now</span>
+            <svg viewBox="0 0 24 24"><use href="#icon-arrow"></use></svg>
+          </button>
+
+          <!-- Trust Badges -->
+          <div class="trust-row">
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24"><use href="#icon-lock"></use></svg>
+              100% Protected
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24"><use href="#icon-sparkle"></use></svg>
+              Instant plans
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24"><use href="#icon-shield"></use></svg>
+              Verified
+            </div>
+          </div>
+        </section>
+
+        <!-- Hidden Data Persistence Form -->
+        <form id="recForm" method="get" action="plans.html" hidden>
+          <input type="hidden" name="mobile" id="fMobile" />
+          <input type="hidden" name="operator" id="fOperator" value="jio" />
+        </form>
+      </main>
+    </div>
+
+    <!-- Animated Loader Overlay Modal -->
+    <div id="loaderOverlay" class="loader-overlay" role="dialog" aria-modal="true" aria-labelledby="loaderText">
+      <div id="loaderCard" class="loader-card">
+        <div id="loadingAnimation" class="loading-animation">
+          <span class="spinner-ring"></span>
+          <span class="spinner-core">
+            <svg viewBox="0 0 24 24"><use href="#icon-bolt"></use></svg>
+          </span>
+        </div>
+        <div id="successAnimation" class="success-animation">
+          <svg viewBox="0 0 24 24"><use href="#icon-check"></use></svg>
+        </div>
+        <div id="loaderText" class="loader-title">Please wait</div>
+        <div id="loaderSubText" class="loader-subtitle">Loading available recharge plans…</div>
+        <div class="loader-progress"><span></span></div>
+      </div>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>
