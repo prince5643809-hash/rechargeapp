@@ -82,10 +82,19 @@
 
     var standardUpiUrl = 'upi://pay?' + upiQuery;
 
-    // Direct Native Custom URI Schemes (Direct OS-level app launching without intent blocks)
-    var phonepeUrl = 'phonepe://pay?' + upiQuery;
-    var paytmUrl = 'paytmmp://pay?' + upiQuery;
-    var gpayUrl = 'tez://upi/pay?' + upiQuery;
+    // Android Package-Targeted Intents
+    var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+    var paytmIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=net.one97.paytm;end';
+    var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+
+    var ua = navigator.userAgent || '';
+    var isAndroid = /android/i.test(ua);
+
+    // On Android: Use package-specific intent URL to launch the exact app directly.
+    // Fallback: standardUpiUrl (universal UPI chooser)
+    var phonepeUrl = isAndroid ? phonepeIntent : standardUpiUrl;
+    var paytmUrl = isAndroid ? paytmIntent : standardUpiUrl;
+    var gpayUrl = isAndroid ? gpayIntent : standardUpiUrl;
 
     var phonepeLink = document.getElementById('phonepeLink');
     var gpayLink = document.getElementById('gpayLink');
@@ -283,6 +292,7 @@
       link.addEventListener('click', function (e) {
         var appKey = this.getAttribute('data-app') || 'phonepe';
         var directUrl = this.getAttribute('data-url') || this.getAttribute('href');
+        var fallbackUrl = this.getAttribute('data-fallback') || ('upi://pay?' + upiQuery);
 
         if (!directUrl || directUrl === '#' || directUrl === '') {
           e.preventDefault();
@@ -297,14 +307,16 @@
         // 1. Show instant loading state (DO NOT scroll to UTR!)
         showLaunchModal(appKey);
 
-        // 2. Launch the app directly and synchronously on this user gesture
-        try {
-          window.location.href = directUrl;
-        } catch (err) {
-          console.warn('Direct launch error:', err);
-        }
-
         if (navigator.vibrate) navigator.vibrate(25);
+
+        // Fail-safe automatic fallback:
+        // If targeted intent doesn't put browser into background (e.g. app missing or intent blocked)
+        // after 750ms, automatically trigger universal UPI chooser so user is NEVER stuck!
+        setTimeout(function () {
+          if (!document.hidden && (Date.now() - appLaunchTimestamp) < 2500) {
+            window.location.href = fallbackUrl;
+          }
+        }, 750);
       });
     });
 
@@ -337,17 +349,9 @@
       modalRetryAppBtn.addEventListener('click', function () {
         var targetLink = document.getElementById(currentAppKey + 'Link') || document.getElementById('phonepeLink');
         var fallbackUrl = targetLink ? (targetLink.getAttribute('data-fallback') || targetLink.getAttribute('href')) : '';
-        var directUrl = targetLink ? (targetLink.getAttribute('data-url') || targetLink.getAttribute('href')) : '';
-
-        // Try direct scheme first, then universal UPI chooser
-        if (directUrl) {
-          window.location.href = directUrl;
+        if (fallbackUrl) {
+          window.location.href = fallbackUrl;
         }
-        setTimeout(function () {
-          if (!document.hidden && fallbackUrl) {
-            window.location.href = fallbackUrl;
-          }
-        }, 1000);
       });
     }
 
