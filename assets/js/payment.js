@@ -76,46 +76,22 @@
   var isWebView = isAndroid && (/; wv\)/i.test(ua) || /FB_IAB|Instagram|Twitter|Telegram/i.test(ua));
   var isDebug = params.get('debug') === '1' || sessionStorage.getItem('debug_upi') === '1';
 
-  // Safe development-only debug logger (does not leak secrets or private keys)
-  function logDebugInfo(action, meta) {
-    if (!isDebug) return;
-    try {
-      console.log('[UPI Audit Debug] ' + action, {
-        selectedMethod: meta.appKey,
-        platform: isAndroid ? 'Android' : (isIOS ? 'iOS' : 'Desktop'),
-        isWebView: isWebView,
-        merchantVpa: officialUpiId,
-        orderAmount: formattedAmount,
-        transactionRef: orderId,
-        targetUri: meta.targetUri,
-        uriType: (meta.targetUri || '').split(':')[0]
-      });
-    } catch (e) {}
-  }
-
   // 5. Cross-Platform App URLs (Native Anchors & Intents)
   var appUrls = {};
   if (isAndroid) {
     // Android Chrome & Mobile:
-    // Generic UPI Chooser: Standard universal UPI URI (triggers native system UPI chooser dialog)
     appUrls.generic = standardUpiUrl;
-    // PhonePe: Direct Android Intent targeting PhonePe package
     appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
-    // Google Pay direct package intent
     appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-    // Paytm proprietary custom scheme (proven reliable on Android)
     appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
-    // BHIM direct package intent
     appUrls.bhim = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
   } else if (isIOS) {
-    // iOS Safari / WebKit:
     appUrls.generic = standardUpiUrl;
     appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
     appUrls.gpay = 'gpay://upi/pay?' + canonicalQuery;
     appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
     appUrls.bhim = standardUpiUrl;
   } else {
-    // Desktop / Universal:
     appUrls.generic = standardUpiUrl;
     appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
     appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
@@ -158,11 +134,13 @@
   // 7. Populate Order Summary & Dynamic Price Tags
   function initSummary() {
     var phoneEl = document.getElementById('summaryPhone');
+    var phoneDetailEl = document.getElementById('summaryPhoneDetail');
+    var opEl = document.getElementById('summaryOperator');
     var logoEl = document.getElementById('summaryLogo');
     var planTagEl = document.getElementById('summaryPlanTag');
-    var basePriceEl = document.getElementById('summaryBasePrice');
     var totalAmountEl = document.getElementById('summaryTotal');
     var qrAmountEl = document.getElementById('qrAmount');
+    var qrPanelAmountEl = document.getElementById('qrPanelAmount');
     var displayUpiEl = document.getElementById('displayUpiId');
 
     var inlineAmts = document.querySelectorAll('.inline-amt, .utr-dyn-amt');
@@ -170,12 +148,15 @@
       el.textContent = numAmount;
     });
 
-    if (phoneEl) phoneEl.textContent = '+91 ' + mobile.replace(/(\d{5})(\d{5})/, '$1 $2');
+    var formattedPhone = '+91 ' + mobile.replace(/(\d{5})(\d{5})/, '$1 $2');
+    if (phoneEl) phoneEl.textContent = opDisplayName + ' • ' + formattedPhone;
+    if (phoneDetailEl) phoneDetailEl.textContent = formattedPhone;
+    if (opEl) opEl.textContent = opDisplayName;
     if (logoEl) logoEl.src = 'assets/img/' + operator + '.jpg';
     if (planTagEl) planTagEl.textContent = validity + ' • ' + dataInfo;
-    if (basePriceEl) basePriceEl.textContent = '₹' + numAmount;
-    if (totalAmountEl) totalAmountEl.textContent = '₹' + numAmount;
-    if (qrAmountEl) qrAmountEl.textContent = '₹' + numAmount;
+    if (totalAmountEl) totalAmountEl.textContent = '₹' + formattedAmount;
+    if (qrAmountEl) qrAmountEl.textContent = '₹' + formattedAmount;
+    if (qrPanelAmountEl) qrPanelAmountEl.textContent = 'Pay ₹' + formattedAmount;
     if (displayUpiEl) displayUpiEl.textContent = officialUpiId;
 
     // Auto verification panel elements
@@ -189,13 +170,6 @@
 
     // Setup direct app deep links on <a> tags
     setupAppDeepLinks();
-
-    // Check for Chrome Android PhonePe fallback parameter
-    var isPhonepeFallback = params.get('phonepe_fallback') === '1';
-    var phonepeNotice = document.getElementById('phonepeFallbackNotice');
-    if (isPhonepeFallback && phonepeNotice) {
-      phonepeNotice.style.display = 'block';
-    }
 
     // Render Dynamic QR from canonical payload
     renderDynamicQr(standardUpiUrl);
@@ -246,8 +220,7 @@
   }
 
   // App Metadata & Launch State Manager
-  var currentAppKey = 'generic';
-  var lastLaunchTimestamp = 0;
+  var currentAppKey = 'phonepe';
   var userLeftToApp = false;
   var appOpenedTime = 0;
 
@@ -274,50 +247,25 @@
     }
   };
 
-  function showLaunchModal(appKey) {
-    var modal = document.getElementById('appLaunchModal');
-    var icon = document.getElementById('launchAppIcon');
-    var status = document.getElementById('launchStatusText');
-    var title = document.getElementById('launchModalTitle');
-    var sub = document.getElementById('launchModalSub');
-    var retryBtn = document.getElementById('modalRetryAppBtn');
-    var genericBtn = document.getElementById('modalGenericUpiBtn');
-    var scanQrBtn = document.getElementById('modalScanQrBtn');
-
-    var meta = appMeta[appKey] || appMeta.generic;
-
-    if (icon) icon.src = meta.logo;
-    if (status) status.textContent = 'App did not open automatically';
-    if (title) title.textContent = 'Choose Payment Option';
-    if (sub) {
-      sub.innerHTML = 'If ' + meta.name + ' did not open, please tap <strong>"Pay by any UPI app"</strong> or scan the QR code below.';
-    }
-    if (retryBtn) {
-      retryBtn.innerHTML = '🚀 Retry Opening ' + meta.name + ' / Pay ₹<span class="inline-amt">' + numAmount + '</span>';
-      var directTarget = appUrls[appKey] || appUrls.generic;
-      retryBtn.setAttribute('href', directTarget);
-    }
-    if (genericBtn) {
-      genericBtn.setAttribute('href', appUrls.generic);
-      genericBtn.style.display = 'flex';
-    }
-    if (scanQrBtn) {
-      scanQrBtn.style.display = 'flex';
-    }
-
-    if (modal) {
-      modal.style.display = 'flex';
-      modal.setAttribute('aria-hidden', 'false');
+  // Image 2 Opening Payment Loader Overlay Controllers
+  function showLoader() {
+    var overlay = document.getElementById('loaderOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.classList.add('show');
+      clearTimeout(window._loaderTimer);
+      window._loaderTimer = setTimeout(function () {
+        hideLoader();
+      }, 5000);
     }
   }
 
-  function hideLaunchModal() {
-    clearTimeout(window._launchAssistTimer);
-    clearTimeout(window._launchModalTimer);
-    var modal = document.getElementById('appLaunchModal');
-    if (modal) {
-      modal.style.display = 'none';
-      modal.setAttribute('aria-hidden', 'true');
+  function hideLoader() {
+    clearTimeout(window._loaderTimer);
+    var overlay = document.getElementById('loaderOverlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      overlay.style.display = 'none';
     }
   }
 
@@ -386,8 +334,8 @@
     var copyBtn = document.getElementById('copyUpiBtn');
     var copyText = document.getElementById('copyText');
     var qrToggleBtn = document.getElementById('qrToggleBtn');
-    var qrToggleSub = document.getElementById('qrToggleSub');
     var qrCard = document.getElementById('qrCard');
+    var closeQrBtn = document.getElementById('closeQrButton');
     var utrInput = document.getElementById('utrInput');
     var utrCounter = document.getElementById('utrCounter');
     var utrError = document.getElementById('utrError');
@@ -396,7 +344,7 @@
     var downloadQrBtn = document.getElementById('downloadQrBtn');
 
     var summaryCard = document.getElementById('summaryCard');
-    var methodsSection = document.getElementById('methodsSection');
+    var methodsCard = document.getElementById('methodsCard');
     var utrCard = document.getElementById('utrCard');
     var autoPanel = document.getElementById('autoPanel');
     var successCard = document.getElementById('successCard');
@@ -406,25 +354,31 @@
       qrToggleBtn.addEventListener('click', function () {
         var isHidden = qrCard.style.display === 'none' || !qrCard.style.display;
         if (isHidden) {
-          qrCard.style.display = 'flex';
+          qrCard.style.display = 'block';
           qrToggleBtn.classList.add('active');
           qrToggleBtn.setAttribute('aria-expanded', 'true');
-          if (qrToggleSub) qrToggleSub.textContent = 'Tap to hide QR Code';
           qrCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
           qrCard.style.display = 'none';
           qrToggleBtn.classList.remove('active');
           qrToggleBtn.setAttribute('aria-expanded', 'false');
-          if (qrToggleSub) qrToggleSub.textContent = 'Click to show QR Code & Download';
         }
         if (navigator.vibrate) navigator.vibrate(15);
       });
     }
 
-    // App link clicks: 100% Direct Native Anchor Navigation
-    // ZERO click listeners attached to PhonePe or payment anchors.
-    // The browser performs uninhibited, direct native anchor navigation to the Android Intent URI.
-    // Passive pointerdown solely records the tapped app key for post-payment UTR return notice without touching the click pipeline.
+    if (closeQrBtn && qrCard) {
+      closeQrBtn.addEventListener('click', function () {
+        qrCard.style.display = 'none';
+        if (qrToggleBtn) {
+          qrToggleBtn.classList.remove('active');
+          qrToggleBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    // App Link Click: Display Animated "Opening payment" Loader (Image 2)
+    // Direct Native Anchor Navigation: ZERO preventDefault() ensures native Android Intent navigation fires immediately!
     var appPayLinks = document.querySelectorAll('.app-pay-link');
 
     appPayLinks.forEach(function (link) {
@@ -435,56 +389,13 @@
         },
         { passive: true }
       );
+
+      link.addEventListener('click', function () {
+        currentAppKey = this.getAttribute('data-app') || 'phonepe';
+        showLoader();
+        // Native intent link navigation proceeds automatically
+      });
     });
-
-    // Modal action buttons
-    var modalCloseBtn = document.getElementById('modalCloseBtn');
-    var modalBackdrop = document.getElementById('modalBackdrop');
-    var modalEnterUtrBtn = document.getElementById('modalEnterUtrBtn');
-    var modalRetryAppBtn = document.getElementById('modalRetryAppBtn');
-    var modalScanQrBtn = document.getElementById('modalScanQrBtn');
-
-    if (modalCloseBtn) {
-      modalCloseBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        hideLaunchModal();
-      });
-    }
-
-    if (modalBackdrop) {
-      modalBackdrop.addEventListener('click', function (e) {
-        e.preventDefault();
-        hideLaunchModal();
-      });
-    }
-
-    if (modalScanQrBtn && qrCard) {
-      modalScanQrBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        hideLaunchModal();
-        qrCard.style.display = 'flex';
-        if (qrToggleBtn) {
-          qrToggleBtn.classList.add('active');
-          qrToggleBtn.setAttribute('aria-expanded', 'true');
-        }
-        if (qrToggleSub) qrToggleSub.textContent = 'Tap to hide QR Code';
-        qrCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
-    }
-
-    if (modalEnterUtrBtn) {
-      modalEnterUtrBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        hideLaunchModal();
-        openUtrSection(currentAppKey);
-      });
-    }
-
-    if (modalRetryAppBtn) {
-      modalRetryAppBtn.addEventListener('click', function () {
-        // Direct native anchor navigation
-      });
-    }
 
     // Detect user leaving to PhonePe / UPI app (Tracking return state & BFCache)
     document.addEventListener('visibilitychange', function () {
@@ -492,10 +403,9 @@
         userLeftToApp = true;
         appOpenedTime = Date.now();
       } else if (document.visibilityState === 'visible') {
-        // Re-verify deep links on return so hrefs never go stale
+        hideLoader();
         setupAppDeepLinks();
         if (userLeftToApp && (Date.now() - appOpenedTime > 1500)) {
-          hideLaunchModal();
           openUtrSection(currentAppKey);
         }
       }
@@ -507,15 +417,16 @@
     });
 
     window.addEventListener('focus', function () {
+      hideLoader();
       setupAppDeepLinks();
       if (userLeftToApp && (Date.now() - appOpenedTime > 1500)) {
-        hideLaunchModal();
         openUtrSection(currentAppKey);
       }
     });
 
     // Handle BFCache (Back-Forward Cache) page restoration
-    window.addEventListener('pageshow', function (e) {
+    window.addEventListener('pageshow', function () {
+      hideLoader();
       setupAppDeepLinks();
     });
 
@@ -588,7 +499,7 @@
 
         // Hide checkout cards
         if (summaryCard) summaryCard.style.display = 'none';
-        if (methodsSection) methodsSection.style.display = 'none';
+        if (methodsCard) methodsCard.style.display = 'none';
         if (qrCard) qrCard.style.display = 'none';
         if (utrCard) utrCard.style.display = 'none';
 
