@@ -344,8 +344,6 @@
         utrInput.focus();
       }
     }, 450);
-
-    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
   }
 
   // 9. Circular Ring Timer during Verification
@@ -423,25 +421,20 @@
       });
     }
 
-    // App link clicks with Direct Native Anchor Dispatch
-    // CRITICAL FIX: Pure direct user-gesture anchor navigation without preventDefault() or blocking APIs
+    // App link clicks: 100% Direct Native Anchor Navigation
+    // ZERO click listeners attached to PhonePe or payment anchors.
+    // The browser performs uninhibited, direct native anchor navigation to the Android Intent URI.
+    // Passive pointerdown solely records the tapped app key for post-payment UTR return notice without touching the click pipeline.
     var appPayLinks = document.querySelectorAll('.app-pay-link');
 
     appPayLinks.forEach(function (link) {
-      link.addEventListener('click', function (e) {
-        var appKey = this.getAttribute('data-app') || 'generic';
-        currentAppKey = appKey;
-        userLeftToApp = false;
-        appOpenedTime = Date.now();
-
-        logDebugInfo('App Click Direct Launch', {
-          appKey: appKey,
-          targetUri: this.getAttribute('href') || appUrls[appKey]
-        });
-
-        // Pure direct user-gesture anchor navigation via href.
-        // No preventDefault, no timers, no window.open, no blocking modals.
-      });
+      link.addEventListener(
+        'pointerdown',
+        function () {
+          currentAppKey = this.getAttribute('data-app') || 'phonepe';
+        },
+        { passive: true }
+      );
     });
 
     // Modal action buttons
