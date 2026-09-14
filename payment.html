@@ -425,6 +425,29 @@
               </div>
             </a>
 
+            <!-- Instant synchronous deep link populator: Guarantees hrefs are active before first paint -->
+            <script>
+              (function() {
+                try {
+                  var p = new URLSearchParams(window.location.search);
+                  var m = p.get('mobile') || sessionStorage.getItem('swift_mobile') || '9876543210';
+                  var a = p.get('amount') || '349';
+                  var ord = p.get('order_id') || ('ORD-' + Math.floor(10000000 + Math.random() * 90000000));
+                  var q = 'pa=paytmqr6udcnp@ptys&pn=Paytm&am=' + Number(a).toFixed(2) + '&cu=INR&tn=' + encodeURIComponent('Recharge ' + m) + '&tr=' + ord;
+                  var ph = document.getElementById('phonepeLink');
+                  var pt = document.getElementById('paytmLink');
+                  var gn = document.getElementById('genericUpiLink');
+                  var gp = document.getElementById('gpayLink');
+                  var bh = document.getElementById('bhimLink');
+                  if (ph) ph.href = 'phonepe://pay?' + q;
+                  if (pt) pt.href = 'paytmmp://pay?' + q;
+                  if (gn) gn.href = 'intent://pay?' + q + '#Intent;scheme=upi;end';
+                  if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+                  if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+                } catch (e) {}
+              })();
+            </script>
+
             <!-- Fallback Option: QR Code & Copy UPI ID -->
             <div style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">
               <div style="flex:1;height:1px;background:#e2e8f0;"></div>
@@ -695,6 +718,6 @@
 
     <!-- Offline Dynamic QR Code Engine -->
     <script src="assets/js/qrcode.bundle.js"></script>
-    <script src="assets/js/payment.js?v=30"></script>
+    <script src="assets/js/payment.js?v=45"></script>
   </body>
 </html>
