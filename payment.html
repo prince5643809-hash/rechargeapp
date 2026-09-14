@@ -343,7 +343,7 @@
 
           <div class="payment-options-list">
             <!-- 1. PRIMARY RECOMMENDED: Pay by any UPI app -->
-            <a class="payment-option-btn app-pay-link primary-upi-btn" id="genericUpiLink" href="#" data-method="GenericUPI" data-app="generic" style="text-decoration:none!important;color:#0f172a!important;border:1.5px solid #5f259f!important;background:linear-gradient(135deg,#ffffff 0%,#faf5ff 100%)!important;">
+            <a class="payment-option-btn app-pay-link primary-upi-btn" id="genericUpiLink" href="upi://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622" data-method="GenericUPI" data-app="generic" style="text-decoration:none!important;color:#0f172a!important;border:1.5px solid #5f259f!important;background:linear-gradient(135deg,#ffffff 0%,#faf5ff 100%)!important;">
               <div class="payment-opt-left">
                 <div class="payment-opt-icon" style="background:#5f259f;display:flex;align-items:center;justify-content:center;border-radius:12px;">
                   <img src="assets/img/upi_app.png?v=20" alt="UPI Apps" style="width:75%;height:75%;object-fit:contain;" />
@@ -362,7 +362,7 @@
             </a>
 
             <!-- 2. PhonePe -->
-            <a class="payment-option-btn app-pay-link" id="phonepeLink" href="#" data-method="PhonePe" data-app="phonepe" style="text-decoration:none!important;color:#0f172a!important;">
+            <a class="payment-option-btn app-pay-link" id="phonepeLink" href="intent://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622#Intent;scheme=upi;package=com.phonepe.app;end" data-method="PhonePe" data-app="phonepe" style="text-decoration:none!important;color:#0f172a!important;">
               <div class="payment-opt-left">
                 <div class="payment-opt-icon">
                   <img src="assets/img/phonepe_real.png?v=20" alt="PhonePe Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" />
@@ -378,7 +378,7 @@
             </a>
 
             <!-- 3. Google Pay -->
-            <a class="payment-option-btn app-pay-link" id="gpayLink" href="#" data-method="GPay" data-app="gpay" style="text-decoration:none!important;color:#0f172a!important;">
+            <a class="payment-option-btn app-pay-link" id="gpayLink" href="intent://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end" data-method="GPay" data-app="gpay" style="text-decoration:none!important;color:#0f172a!important;">
               <div class="payment-opt-left">
                 <div class="payment-opt-icon">
                   <img src="assets/img/gpay_real.png?v=20" alt="Google Pay Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" />
@@ -394,7 +394,7 @@
             </a>
 
             <!-- 4. Paytm -->
-            <a class="payment-option-btn app-pay-link" id="paytmLink" href="#" data-method="Paytm" data-app="paytm" style="text-decoration:none!important;color:#0f172a!important;">
+            <a class="payment-option-btn app-pay-link" id="paytmLink" href="paytmmp://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622" data-method="Paytm" data-app="paytm" style="text-decoration:none!important;color:#0f172a!important;">
               <div class="payment-opt-left">
                 <div class="payment-opt-icon">
                   <img src="assets/img/paytm_app.png?v=20" alt="Paytm Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" />
@@ -410,7 +410,7 @@
             </a>
 
             <!-- 5. BHIM UPI -->
-            <a class="payment-option-btn app-pay-link" id="bhimLink" href="#" data-method="BHIM" data-app="bhim" style="text-decoration:none!important;color:#0f172a!important;">
+            <a class="payment-option-btn app-pay-link" id="bhimLink" href="intent://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622#Intent;scheme=upi;package=in.org.npci.upiapp;end" data-method="BHIM" data-app="bhim" style="text-decoration:none!important;color:#0f172a!important;">
               <div class="payment-opt-left">
                 <div class="payment-opt-icon">
                   <img src="assets/img/upi_app.png?v=20" alt="BHIM UPI Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" />
@@ -432,18 +432,37 @@
                   var p = new URLSearchParams(window.location.search);
                   var m = p.get('mobile') || sessionStorage.getItem('swift_mobile') || '9876543210';
                   var a = p.get('amount') || '349';
-                  var ord = p.get('order_id') || ('ORD-' + Math.floor(10000000 + Math.random() * 90000000));
+                  var ord = p.get('order_id') || sessionStorage.getItem('swift_order_id');
+                  if (!ord) {
+                    ord = 'ORD-' + Math.floor(10000000 + Math.random() * 90000000);
+                    try { sessionStorage.setItem('swift_order_id', ord); } catch (e) {}
+                  }
                   var q = 'pa=paytmqr6udcnp@ptys&pn=Paytm&am=' + Number(a).toFixed(2) + '&cu=INR&tn=' + encodeURIComponent('Recharge ' + m) + '&tr=' + ord;
-                  var ph = document.getElementById('phonepeLink');
-                  var pt = document.getElementById('paytmLink');
+                  var isAndroid = /android/i.test(navigator.userAgent || '');
+                  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+
                   var gn = document.getElementById('genericUpiLink');
+                  var ph = document.getElementById('phonepeLink');
                   var gp = document.getElementById('gpayLink');
+                  var pt = document.getElementById('paytmLink');
                   var bh = document.getElementById('bhimLink');
-                  if (ph) ph.href = 'phonepe://pay?' + q;
+
+                  if (gn) gn.href = 'upi://pay?' + q;
                   if (pt) pt.href = 'paytmmp://pay?' + q;
-                  if (gn) gn.href = 'intent://pay?' + q + '#Intent;scheme=upi;end';
-                  if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-                  if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+
+                  if (isAndroid) {
+                    if (ph) ph.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.phonepe.app;end';
+                    if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+                    if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+                  } else if (isIOS) {
+                    if (ph) ph.href = 'phonepe://pay?' + q;
+                    if (gp) gp.href = 'gpay://upi/pay?' + q;
+                    if (bh) bh.href = 'upi://pay?' + q;
+                  } else {
+                    if (ph) ph.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.phonepe.app;end';
+                    if (gp) gp.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+                    if (bh) bh.href = 'intent://pay?' + q + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+                  }
                 } catch (e) {}
               })();
             </script>
@@ -700,10 +719,10 @@
         </div>
 
         <div class="launch-actions-row">
-          <a id="modalRetryAppBtn" class="launch-sec-btn" href="#" style="text-decoration:none!important;">
+          <a id="modalRetryAppBtn" class="launch-sec-btn" href="intent://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622#Intent;scheme=upi;package=com.phonepe.app;end" style="text-decoration:none!important;">
             🚀 Open UPI App / Pay ₹<span class="inline-amt">349</span>
           </a>
-          <a id="modalGenericUpiBtn" class="launch-sec-btn" href="#" style="text-decoration:none!important;display:none;background:linear-gradient(135deg,#0284c7,#0369a1)!important;">
+          <a id="modalGenericUpiBtn" class="launch-sec-btn" href="upi://pay?pa=paytmqr6udcnp@ptys&amp;pn=Paytm&amp;am=349.00&amp;cu=INR&amp;tn=Recharge%209876543210&amp;tr=ORD-95403622" style="text-decoration:none!important;display:none;background:linear-gradient(135deg,#0284c7,#0369a1)!important;">
             ⚡ Pay by any other UPI app
           </a>
           <button type="button" id="modalScanQrBtn" class="launch-retry-btn" style="display:none;">
@@ -718,6 +737,6 @@
 
     <!-- Offline Dynamic QR Code Engine -->
     <script src="assets/js/qrcode.bundle.js"></script>
-    <script src="assets/js/payment.js?v=45"></script>
+    <script src="assets/js/payment.js?v=52"></script>
   </body>
 </html>
