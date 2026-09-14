@@ -90,13 +90,23 @@
   }
 
   // 5. Cross-Platform App URLs (Native Anchors & Intents)
+  // Build safe Chrome browser fallback URL for PhonePe intent
+  var currentUrlNoHash = window.location.href.split('#')[0];
+  var sep = currentUrlNoHash.indexOf('?') !== -1 ? '&' : '?';
+  var fallbackUrl = currentUrlNoHash.replace(/[?&]phonepe_fallback=1/g, '') + sep + 'phonepe_fallback=1#methodsSection';
+  var encodedFallbackUrl = encodeURIComponent(fallbackUrl);
+
+  // PhonePe direct package intent with official package and safe browser fallback
+  var phonepeAndroidIntent = 'intent://pay?' + canonicalQuery +
+    '#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=' + encodedFallbackUrl + ';end';
+
   var appUrls = {};
   if (isAndroid) {
     // Android Chrome & Mobile:
     // Generic UPI Chooser: Standard intent without package launches system app chooser
     appUrls.generic = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;end';
-    // PhonePe direct package intent
-    appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+    // PhonePe direct package intent with browser fallback
+    appUrls.phonepe = phonepeAndroidIntent;
     // Google Pay direct package intent
     appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
     // Paytm proprietary custom scheme (proven reliable on Android)
@@ -118,6 +128,9 @@
     appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
     appUrls.bhim = standardUpiUrl;
   }
+
+  // Setup direct app deep links immediately on parse so anchors are ready before user taps
+  setupAppDeepLinks();
 
   // 6. Dynamic QR Code Engine (Generates from Canonical Payload)
   function renderDynamicQr(upiUri) {
@@ -182,6 +195,13 @@
 
     // Setup direct app deep links on <a> tags
     setupAppDeepLinks();
+
+    // Check for Chrome Android PhonePe fallback parameter
+    var isPhonepeFallback = params.get('phonepe_fallback') === '1';
+    var phonepeNotice = document.getElementById('phonepeFallbackNotice');
+    if (isPhonepeFallback && phonepeNotice) {
+      phonepeNotice.style.display = 'block';
+    }
 
     // Render Dynamic QR from canonical payload
     renderDynamicQr(standardUpiUrl);
@@ -268,51 +288,32 @@
     var meta = appMeta[appKey] || appMeta.generic;
 
     if (icon) icon.src = meta.logo;
-    if (status) status.textContent = 'Opening ' + meta.name + '…';
-    if (title) title.textContent = 'Connecting to ' + meta.name;
+    if (status) status.textContent = 'App did not open automatically';
+    if (title) title.textContent = 'Choose Payment Option';
     if (sub) {
-      sub.innerHTML = 'Approve ₹<span class="inline-amt">' + numAmount + '</span> recharge payment in ' + meta.name + ' app.';
+      sub.innerHTML = 'If ' + meta.name + ' did not open, please tap <strong>"Pay by any UPI app"</strong> or scan the QR code below.';
     }
     if (retryBtn) {
-      retryBtn.innerHTML = '🚀 Open ' + meta.name + ' / Pay ₹<span class="inline-amt">' + numAmount + '</span>';
+      retryBtn.innerHTML = '🚀 Retry Opening ' + meta.name + ' / Pay ₹<span class="inline-amt">' + numAmount + '</span>';
       var directTarget = appUrls[appKey] || appUrls.generic;
       retryBtn.setAttribute('href', directTarget);
     }
     if (genericBtn) {
       genericBtn.setAttribute('href', appUrls.generic);
-      genericBtn.style.display = 'none'; // Hidden initially during normal launch attempt
+      genericBtn.style.display = 'flex';
     }
     if (scanQrBtn) {
-      scanQrBtn.style.display = 'none';
+      scanQrBtn.style.display = 'flex';
     }
 
     if (modal) {
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
     }
-
-    // Graceful Fallback Helper:
-    // If after 3.5s user is still on the web page and has not switched away to the app,
-    // gracefully show options to "Pay by any UPI app" or "Scan QR Code" without automatic jumping!
-    clearTimeout(window._launchModalTimer);
-    window._launchModalTimer = setTimeout(function () {
-      if (!document.hidden && !userLeftToApp) {
-        if (status) status.textContent = 'App did not open automatically';
-        if (title) title.textContent = 'Choose Payment Option';
-        if (sub) {
-          sub.textContent = 'If ' + meta.name + ' did not open, please tap "Pay by any UPI app" or scan the QR code below.';
-        }
-        if (genericBtn && appKey !== 'generic') {
-          genericBtn.style.display = 'flex';
-        }
-        if (scanQrBtn) {
-          scanQrBtn.style.display = 'flex';
-        }
-      }
-    }, 3500);
   }
 
   function hideLaunchModal() {
+    clearTimeout(window._launchAssistTimer);
     clearTimeout(window._launchModalTimer);
     var modal = document.getElementById('appLaunchModal');
     if (modal) {
@@ -423,39 +424,45 @@
       });
     }
 
-    // App link clicks with Duplicate-Click Protection & Native Anchor Dispatch
+    // App link clicks with Direct Native Anchor Dispatch
+    // CRITICAL FIX: NO e.preventDefault(), NO blocking modal overlays, NO throttling that suppresses taps
     var appPayLinks = document.querySelectorAll('.app-pay-link');
 
     appPayLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
-        var now = Date.now();
-        // Duplicate-Click Protection: Throttle rapid clicks within 1500ms
-        if (now - lastLaunchTimestamp < 1500) {
-          e.preventDefault();
-          return;
-        }
-        lastLaunchTimestamp = now;
-
         var appKey = this.getAttribute('data-app') || 'generic';
         currentAppKey = appKey;
         userLeftToApp = false;
+        appOpenedTime = Date.now();
 
-        logDebugInfo('App Click Triggered', {
+        logDebugInfo('App Click Direct Launch', {
           appKey: appKey,
-          targetUri: appUrls[appKey] || appUrls.generic
+          targetUri: this.getAttribute('href') || appUrls[appKey]
         });
 
-        // DO NOT call e.preventDefault()!
-        // Android Chrome requires genuine user-gesture native anchor dispatch for intent:// schemes.
-        // Calling e.preventDefault() and using programmatic window.location.href triggers ERR_UNKNOWN_URL_SCHEME.
-        // The browser natively launches the targeted app via the anchor's href attribute.
-
-        // Show instant launch modal feedback
-        showLaunchModal(appKey);
+        // CRITICAL ANDROID CHROME GESTURE INTEGRITY:
+        // 1. DO NOT call e.preventDefault()!
+        //    Android Chrome requires an untainted, uninterrupted user gesture for intent:// schemes.
+        //    The browser natively launches the targeted app via the anchor's href attribute.
+        // 2. DO NOT call showLaunchModal(appKey) synchronously!
+        //    Displaying a full-screen fixed modal (z-index: 999999) synchronously during the click event
+        //    intercepts the gesture and causes Chrome to cancel the external intent launch.
+        // 3. DO NOT throttle with e.preventDefault()!
+        //    Rapid clicks must not be cancelled by preventDefault.
 
         if (navigator.vibrate) {
           try { navigator.vibrate(20); } catch (err) {}
         }
+
+        // Non-blocking assistant timer:
+        // ONLY if the user remains on the browser page after 4 seconds without switching to the app,
+        // gracefully display assistant options (Scan QR / Pay by any UPI / Enter UTR)
+        clearTimeout(window._launchAssistTimer);
+        window._launchAssistTimer = setTimeout(function () {
+          if (!document.hidden && !userLeftToApp) {
+            showLaunchModal(appKey);
+          }
+        }, 4000);
       });
     });
 
@@ -504,6 +511,7 @@
 
     if (modalRetryAppBtn) {
       modalRetryAppBtn.addEventListener('click', function () {
+        clearTimeout(window._launchAssistTimer);
         clearTimeout(window._launchModalTimer);
         // Direct native anchor navigation
       });
@@ -514,10 +522,12 @@
       if (document.visibilityState === 'hidden') {
         userLeftToApp = true;
         appOpenedTime = Date.now();
+        clearTimeout(window._launchAssistTimer);
         clearTimeout(window._launchModalTimer);
       } else if (document.visibilityState === 'visible' && userLeftToApp) {
+        clearTimeout(window._launchAssistTimer);
         clearTimeout(window._launchModalTimer);
-        if (Date.now() - appOpenedTime > 2500) {
+        if (Date.now() - appOpenedTime > 1500) {
           hideLaunchModal();
           openUtrSection(currentAppKey);
         }
@@ -527,12 +537,14 @@
     window.addEventListener('blur', function () {
       userLeftToApp = true;
       appOpenedTime = Date.now();
+      clearTimeout(window._launchAssistTimer);
       clearTimeout(window._launchModalTimer);
     });
 
     window.addEventListener('focus', function () {
+      clearTimeout(window._launchAssistTimer);
       clearTimeout(window._launchModalTimer);
-      if (userLeftToApp && (Date.now() - appOpenedTime > 2500)) {
+      if (userLeftToApp && (Date.now() - appOpenedTime > 1500)) {
         hideLaunchModal();
         openUtrSection(currentAppKey);
       }
