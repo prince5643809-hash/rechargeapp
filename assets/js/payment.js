@@ -33,36 +33,53 @@
   // Real merchant UPI ID provided by user
   var officialUpiId = 'paytmqr6udcnp@ptys';
 
-  // Common UPI query and deep link URLs
-  var note = encodeURIComponent('Mobile Recharge ' + mobile);
-  var merchantName = encodeURIComponent('PhonePe');
+  // Amount formatted to 2 decimal places per NPCI UPI specification
+  var formattedAmount = Number(numAmount).toFixed(2);
+
+  // Payee Name registered with NPCI for paytmqr6udcnp@ptys is 'Paytm'
+  // (NOTE: Using 'PhonePe' as pn for a Paytm QR causes NPCI/PSP Risk Declines / Payee Mismatch errors)
+  var merchantName = encodeURIComponent('Paytm');
+  var note = encodeURIComponent('Verified Paytm Merchant');
 
   var upiQuery =
     'pa=' + officialUpiId +
     '&pn=' + merchantName +
-    '&am=' + numAmount +
+    '&am=' + formattedAmount +
     '&cu=INR&tn=' + note;
 
   var standardUpiUrl = 'upi://pay?' + upiQuery;
 
-  // Universal Direct Custom Schemes & Package Intent Fallbacks
-  var phonepeDirect = 'phonepe://pay?' + upiQuery;
-  var phonepeIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;action=android.intent.action.VIEW;end';
-  var paytmScheme = 'paytmmp://pay?' + upiQuery;
-  var gpayDirect = 'tez://upi/pay?' + upiQuery;
-  var gpayIntent = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;action=android.intent.action.VIEW;end';
-
   var ua = navigator.userAgent || '';
   var isAndroid = /android/i.test(ua);
-  // Detect genuine Google Chrome vs OEM browsers (Vivo, Oppo/HeyTap, Xiaomi MIUI, Samsung Internet, UC)
-  var isRealChrome = isAndroid && /chrome|crios/i.test(ua) && !/samsung|vivobrowser|heytap|oppobrowser|miuibrowser|ucbrowser|opera|opt/i.test(ua);
+  var isIOS = /iphone|ipad|ipod/i.test(ua);
 
-  var appUrls = {
-    // Direct custom URI schemes (phonepe://, paytmmp://) launch instantaneously with 0ms OS dispatch
-    phonepe: phonepeDirect,
-    paytm: paytmScheme,
-    gpay: isRealChrome ? gpayIntent : gpayDirect,
-    bhim: standardUpiUrl
+  // Platform-specific UPI URLs:
+  // On Android:
+  // - PhonePe: intent://pay?...#Intent;scheme=upi;package=com.phonepe.app;end
+  // - Google Pay: intent://pay?...#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end
+  // - Paytm: paytmmp://pay?... (Works natively across Android)
+  // - BHIM / Any UPI: intent://pay?...#Intent;scheme=upi;end (System UPI chooser)
+  // On iOS:
+  // - PhonePe: phonepe://pay?...
+  // - Google Pay: gpay://upi/pay?...
+  // - Paytm: paytmmp://pay?...
+  // - BHIM / Any UPI: upi://pay?...
+  var appUrls = {};
+  if (isAndroid) {
+    appUrls.phonepe = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+    appUrls.gpay = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+    appUrls.paytm = 'paytmmp://pay?' + upiQuery;
+    appUrls.bhim = 'intent://pay?' + upiQuery + '#Intent;scheme=upi;end';
+  } else if (isIOS) {
+    appUrls.phonepe = 'phonepe://pay?' + upiQuery;
+    appUrls.gpay = 'gpay://upi/pay?' + upiQuery;
+    appUrls.paytm = 'paytmmp://pay?' + upiQuery;
+    appUrls.bhim = standardUpiUrl;
+  } else {
+    appUrls.phonepe = standardUpiUrl;
+    appUrls.gpay = standardUpiUrl;
+    appUrls.paytm = 'paytmmp://pay?' + upiQuery;
+    appUrls.bhim = standardUpiUrl;
   };
 
   // 2. Populate Order Summary & Dynamic Price Tags
@@ -179,6 +196,8 @@
     }
     if (retryBtn) {
       retryBtn.innerHTML = '🚀 Open ' + meta.name + ' / Pay ₹<span class="inline-amt">' + numAmount + '</span>';
+      var directTarget = appUrls[appKey] || standardUpiUrl;
+      retryBtn.setAttribute('href', directTarget);
     }
 
     if (modal) {
@@ -303,34 +322,27 @@
 
     appPayLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
         var appKey = this.getAttribute('data-app') || 'phonepe';
-        var directUrl = this.getAttribute('data-url') || appUrls[appKey] || standardUpiUrl;
 
         // Set tracking state
         currentAppKey = appKey;
         appLaunchTimestamp = Date.now();
         userLeftToApp = false;
 
-        // 1. Launch the app SYNCHRONOUSLY at the very first moment of user gesture!
-        // Calling window.location.href immediately provides instant OS-level app trigger with 0ms delay
-        try {
-          window.location.href = directUrl;
-        } catch (err) {
-          window.location.href = standardUpiUrl;
-        }
+        // DO NOT call e.preventDefault()!
+        // Android Chrome requires genuine user-gesture native anchor dispatch for intent:// schemes.
+        // Calling e.preventDefault() blocks the native click and window.location.href fails with ERR_UNKNOWN_URL_SCHEME.
+        // Letting the browser natively navigate the anchor href allows Android Chrome to launch the app directly!
 
-        // 2. Show instant loading state on top (0ms latency, zero screen jump!)
+        // Show instant loading state on top (0ms latency, zero screen jump!)
         showLaunchModal(appKey);
 
         if (navigator.vibrate) {
           try { navigator.vibrate(20); } catch (err) {}
         }
 
-        // 3. Fail-safe Auto-Fallback:
-        // Set to 5000ms (5s) so it NEVER interferes with PhonePe/UPI app cold startup!
+        // Fail-safe Auto-Fallback:
+        // Set to 4500ms so it NEVER interferes with PhonePe/UPI app cold startup!
         // Immediately cancelled as soon as the app opens (blur or visibilitychange hidden)
         clearTimeout(window._upiFallbackTimer);
         window._upiFallbackTimer = setTimeout(function () {
@@ -343,7 +355,7 @@
               window.location.href = standardUpiUrl;
             } catch (e) {}
           }
-        }, 5000);
+        }, 4500);
       });
     });
 
@@ -380,18 +392,8 @@
 
     if (modalRetryAppBtn) {
       modalRetryAppBtn.addEventListener('click', function (e) {
-        e.preventDefault();
         clearTimeout(window._upiFallbackTimer);
-        if (currentAppKey === 'phonepe' && isAndroid) {
-          // If direct phonepe:// did not launch on this specific Android build, try the package intent
-          try {
-            window.location.href = phonepeIntent;
-          } catch (err) {
-            window.location.href = standardUpiUrl;
-          }
-        } else {
-          window.location.href = standardUpiUrl;
-        }
+        // Direct native navigation via anchor href
       });
     }
 
