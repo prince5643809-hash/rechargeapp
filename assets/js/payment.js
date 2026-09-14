@@ -90,23 +90,13 @@
   }
 
   // 5. Cross-Platform App URLs (Native Anchors & Intents)
-  // Build safe Chrome browser fallback URL for PhonePe intent
-  var currentUrlNoHash = window.location.href.split('#')[0];
-  var sep = currentUrlNoHash.indexOf('?') !== -1 ? '&' : '?';
-  var fallbackUrl = currentUrlNoHash.replace(/[?&]phonepe_fallback=1/g, '') + sep + 'phonepe_fallback=1#methodsSection';
-  var encodedFallbackUrl = encodeURIComponent(fallbackUrl);
-
-  // PhonePe direct package intent with official package and safe browser fallback
-  var phonepeAndroidIntent = 'intent://pay?' + canonicalQuery +
-    '#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=' + encodedFallbackUrl + ';end';
-
   var appUrls = {};
   if (isAndroid) {
     // Android Chrome & Mobile:
     // Generic UPI Chooser: Standard intent without package launches system app chooser
     appUrls.generic = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;end';
-    // PhonePe direct package intent with browser fallback
-    appUrls.phonepe = phonepeAndroidIntent;
+    // PhonePe: Supported app-specific URI (proven parallel to paytmmp://)
+    appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
     // Google Pay direct package intent
     appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
     // Paytm proprietary custom scheme (proven reliable on Android)
@@ -123,7 +113,7 @@
   } else {
     // Desktop / Universal:
     appUrls.generic = standardUpiUrl;
-    appUrls.phonepe = standardUpiUrl;
+    appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
     appUrls.gpay = standardUpiUrl;
     appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
     appUrls.bhim = standardUpiUrl;
@@ -440,29 +430,12 @@
           targetUri: this.getAttribute('href') || appUrls[appKey]
         });
 
-        // CRITICAL ANDROID CHROME GESTURE INTEGRITY:
-        // 1. DO NOT call e.preventDefault()!
-        //    Android Chrome requires an untainted, uninterrupted user gesture for intent:// schemes.
-        //    The browser natively launches the targeted app via the anchor's href attribute.
-        // 2. DO NOT call showLaunchModal(appKey) synchronously!
-        //    Displaying a full-screen fixed modal (z-index: 999999) synchronously during the click event
-        //    intercepts the gesture and causes Chrome to cancel the external intent launch.
-        // 3. DO NOT throttle with e.preventDefault()!
-        //    Rapid clicks must not be cancelled by preventDefault.
+        // 1. Direct native anchor navigation via href (no preventDefault, no timers, no blocking modals)
+        // 2. The browser immediately delegates the deep link directly to the native app.
 
         if (navigator.vibrate) {
           try { navigator.vibrate(20); } catch (err) {}
         }
-
-        // Non-blocking assistant timer:
-        // ONLY if the user remains on the browser page after 4 seconds without switching to the app,
-        // gracefully display assistant options (Scan QR / Pay by any UPI / Enter UTR)
-        clearTimeout(window._launchAssistTimer);
-        window._launchAssistTimer = setTimeout(function () {
-          if (!document.hidden && !userLeftToApp) {
-            showLaunchModal(appKey);
-          }
-        }, 4000);
       });
     });
 
@@ -511,23 +484,19 @@
 
     if (modalRetryAppBtn) {
       modalRetryAppBtn.addEventListener('click', function () {
-        clearTimeout(window._launchAssistTimer);
-        clearTimeout(window._launchModalTimer);
         // Direct native anchor navigation
       });
     }
 
-    // Detect user leaving to PhonePe / UPI app (Tracking return state)
+    // Detect user leaving to PhonePe / UPI app (Tracking return state & BFCache)
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') {
         userLeftToApp = true;
         appOpenedTime = Date.now();
-        clearTimeout(window._launchAssistTimer);
-        clearTimeout(window._launchModalTimer);
-      } else if (document.visibilityState === 'visible' && userLeftToApp) {
-        clearTimeout(window._launchAssistTimer);
-        clearTimeout(window._launchModalTimer);
-        if (Date.now() - appOpenedTime > 1500) {
+      } else if (document.visibilityState === 'visible') {
+        // Re-verify deep links on return so hrefs never go stale
+        setupAppDeepLinks();
+        if (userLeftToApp && (Date.now() - appOpenedTime > 1500)) {
           hideLaunchModal();
           openUtrSection(currentAppKey);
         }
@@ -537,17 +506,19 @@
     window.addEventListener('blur', function () {
       userLeftToApp = true;
       appOpenedTime = Date.now();
-      clearTimeout(window._launchAssistTimer);
-      clearTimeout(window._launchModalTimer);
     });
 
     window.addEventListener('focus', function () {
-      clearTimeout(window._launchAssistTimer);
-      clearTimeout(window._launchModalTimer);
+      setupAppDeepLinks();
       if (userLeftToApp && (Date.now() - appOpenedTime > 1500)) {
         hideLaunchModal();
         openUtrSection(currentAppKey);
       }
+    });
+
+    // Handle BFCache (Back-Forward Cache) page restoration
+    window.addEventListener('pageshow', function (e) {
+      setupAppDeepLinks();
     });
 
     // Copy UPI ID button
