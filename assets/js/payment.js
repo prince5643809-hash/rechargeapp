@@ -29,8 +29,12 @@
   var numAmount = parseInt(amount, 10) || 349;
   var formattedAmount = Number(numAmount).toFixed(2);
 
-  // Unique Transaction Reference per payment session / order
-  var orderId = params.get('order_id') || ('ORD-' + Math.floor(10000000 + Math.random() * 90000000));
+  // Unique Transaction Reference per payment session / order (persist in sessionStorage for stability)
+  var orderId = params.get('order_id') || sessionStorage.getItem('swift_order_id');
+  if (!orderId) {
+    orderId = 'ORD-' + Math.floor(10000000 + Math.random() * 90000000);
+    try { sessionStorage.setItem('swift_order_id', orderId); } catch (e) {}
+  }
   var txnId = params.get('txn_id') || ('T2409' + Math.floor(100000000000 + Math.random() * 900000000000));
 
   // 2. Centralized Merchant UPI Account Configuration
@@ -93,10 +97,10 @@
   var appUrls = {};
   if (isAndroid) {
     // Android Chrome & Mobile:
-    // Generic UPI Chooser: Standard intent without package launches system app chooser
-    appUrls.generic = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;end';
-    // PhonePe: Supported app-specific URI (proven parallel to paytmmp://)
-    appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
+    // Generic UPI Chooser: Standard universal UPI URI (triggers native system UPI chooser dialog)
+    appUrls.generic = standardUpiUrl;
+    // PhonePe: Direct Android Intent targeting PhonePe package
+    appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
     // Google Pay direct package intent
     appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
     // Paytm proprietary custom scheme (proven reliable on Android)
@@ -113,10 +117,10 @@
   } else {
     // Desktop / Universal:
     appUrls.generic = standardUpiUrl;
-    appUrls.phonepe = 'phonepe://pay?' + canonicalQuery;
-    appUrls.gpay = standardUpiUrl;
+    appUrls.phonepe = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.phonepe.app;end';
+    appUrls.gpay = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
     appUrls.paytm = 'paytmmp://pay?' + canonicalQuery;
-    appUrls.bhim = standardUpiUrl;
+    appUrls.bhim = 'intent://pay?' + canonicalQuery + '#Intent;scheme=upi;package=in.org.npci.upiapp;end';
   }
 
   // Setup direct app deep links immediately on parse so anchors are ready before user taps
@@ -205,31 +209,36 @@
     var paytmLink = document.getElementById('paytmLink');
     var bhimLink = document.getElementById('bhimLink');
 
-    if (genericUpiLink) {
+    if (genericUpiLink && appUrls.generic) {
+      genericUpiLink.href = appUrls.generic;
       genericUpiLink.setAttribute('href', appUrls.generic);
       genericUpiLink.setAttribute('data-url', appUrls.generic);
       genericUpiLink.setAttribute('data-app', 'generic');
     }
 
-    if (phonepeLink) {
+    if (phonepeLink && appUrls.phonepe) {
+      phonepeLink.href = appUrls.phonepe;
       phonepeLink.setAttribute('href', appUrls.phonepe);
       phonepeLink.setAttribute('data-url', appUrls.phonepe);
       phonepeLink.setAttribute('data-app', 'phonepe');
     }
 
-    if (paytmLink) {
+    if (paytmLink && appUrls.paytm) {
+      paytmLink.href = appUrls.paytm;
       paytmLink.setAttribute('href', appUrls.paytm);
       paytmLink.setAttribute('data-url', appUrls.paytm);
       paytmLink.setAttribute('data-app', 'paytm');
     }
 
-    if (gpayLink) {
+    if (gpayLink && appUrls.gpay) {
+      gpayLink.href = appUrls.gpay;
       gpayLink.setAttribute('href', appUrls.gpay);
       gpayLink.setAttribute('data-url', appUrls.gpay);
       gpayLink.setAttribute('data-app', 'gpay');
     }
 
-    if (bhimLink) {
+    if (bhimLink && appUrls.bhim) {
+      bhimLink.href = appUrls.bhim;
       bhimLink.setAttribute('href', appUrls.bhim);
       bhimLink.setAttribute('data-url', appUrls.bhim);
       bhimLink.setAttribute('data-app', 'bhim');
@@ -415,7 +424,7 @@
     }
 
     // App link clicks with Direct Native Anchor Dispatch
-    // CRITICAL FIX: NO e.preventDefault(), NO blocking modal overlays, NO throttling that suppresses taps
+    // CRITICAL FIX: Pure direct user-gesture anchor navigation without preventDefault() or blocking APIs
     var appPayLinks = document.querySelectorAll('.app-pay-link');
 
     appPayLinks.forEach(function (link) {
@@ -430,12 +439,8 @@
           targetUri: this.getAttribute('href') || appUrls[appKey]
         });
 
-        // 1. Direct native anchor navigation via href (no preventDefault, no timers, no blocking modals)
-        // 2. The browser immediately delegates the deep link directly to the native app.
-
-        if (navigator.vibrate) {
-          try { navigator.vibrate(20); } catch (err) {}
-        }
+        // Pure direct user-gesture anchor navigation via href.
+        // No preventDefault, no timers, no window.open, no blocking modals.
       });
     });
 
