@@ -330,6 +330,17 @@
             Step 1: Choose Payment Method
           </h2>
 
+          <!-- PhonePe Fallback Notice (Only shown if Android Chrome cannot open PhonePe app directly) -->
+          <div id="phonepeFallbackNotice" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; color: #9f1239; font-size: 13px; line-height: 1.45;">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span style="font-size: 16px; line-height: 1.2;">⚠️</span>
+              <div>
+                <strong style="display: block; font-size: 13px; font-weight: 800; margin-bottom: 2px;">PhonePe App Not Detected</strong>
+                <span>Please tap <strong>"Pay by any UPI app"</strong> below or scan the QR code to complete your recharge payment.</span>
+              </div>
+            </div>
+          </div>
+
           <div class="payment-options-list">
             <!-- 1. PRIMARY RECOMMENDED: Pay by any UPI app -->
             <a class="payment-option-btn app-pay-link primary-upi-btn" id="genericUpiLink" href="#" data-method="GenericUPI" data-app="generic" style="text-decoration:none!important;color:#0f172a!important;border:1.5px solid #5f259f!important;background:linear-gradient(135deg,#ffffff 0%,#faf5ff 100%)!important;">
@@ -684,6 +695,6 @@
 
     <!-- Offline Dynamic QR Code Engine -->
     <script src="assets/js/qrcode.bundle.js"></script>
-    <script src="assets/js/payment.js?v=28"></script>
+    <script src="assets/js/payment.js?v=30"></script>
   </body>
 </html>
